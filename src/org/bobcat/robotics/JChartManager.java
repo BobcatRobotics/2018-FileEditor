@@ -1,11 +1,11 @@
 package org.bobcat.robotics;
 
-import org.eclipse.swt.widgets.List;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.plot.Plot;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.data.general.SeriesDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 import org.usfirst.frc.team177.lib.SpeedFile;
@@ -13,6 +13,7 @@ import org.usfirst.frc.team177.lib.SpeedRecord;
 
 public class JChartManager {
 	private String fileName = null;
+	private JFreeChart jChart = null;
 
 	private JChartManager() {
 		super();
@@ -23,7 +24,7 @@ public class JChartManager {
 		this.fileName = fileName;
 	}
 	
-	public XYSeriesCollection getChartData() {
+	public XYSeriesCollection getChartData(GraphElements type) {
 		// line plot
 		// X Axis = Time, Y Axis = [Speed, or Distance, or Velocity]
 		XYSeries lineData1 = new XYSeries("Plot 1");
@@ -45,13 +46,18 @@ public class JChartManager {
 			if (speeds[0] == 999.0) {
 				break;
 			}
-			//lineData1.add(sRec.getElapsedTime(false),speeds[0]);
-			//lineData2.add(sRec.getElapsedTime(false),speeds[1]);
-			lineData1.add(sRec.getElapsedTime(false),distance[0]);
-			lineData2.add(sRec.getElapsedTime(false),distance[1]);
-			//lineData1.add(sRec.getElapsedTime(false),velocity[0]);
-			//lineData2.add(sRec.getElapsedTime(false),velocity[1]);
-
+			if (GraphElements.POWER == type) {
+				lineData1.add(sRec.getElapsedTime(false),speeds[0]);
+				lineData2.add(sRec.getElapsedTime(false),speeds[1]);
+			} 
+			if (GraphElements.DISTANCE == type) {
+				lineData1.add(sRec.getElapsedTime(false),distance[0]);
+				lineData2.add(sRec.getElapsedTime(false),distance[1]);
+			} 
+			if (GraphElements.VELOCITY == type) {
+				lineData1.add(sRec.getElapsedTime(false),velocity[0]);
+				lineData2.add(sRec.getElapsedTime(false),velocity[1]);
+			}
 			recCtr++;
 		} while(true);
 		XYSeriesCollection sColl = new XYSeriesCollection();
@@ -60,23 +66,40 @@ public class JChartManager {
 		return sColl;
 	}
 
+
 	public JFreeChart initChart() {
-		JFreeChart chart = ChartFactory.createXYLineChart( 
+		 jChart = ChartFactory.createXYLineChart( 
 				"Record File", // Title 
 				"Time", // x-axis Label 
 				//"Distance", // y-axis Label 
 				null,
-				getChartData(), // Dataset 
+				getChartData(GraphElements.POWER), // Dataset  (Default => POWER)
 				PlotOrientation.VERTICAL, // Plot Orientation 
 				false, // Show Legend 
 				true, // Use tooltips 
 				false // Configure chart to generate URLs? 
 				); 
-		return chart;
+		return jChart;
+	}
+	
+	public JFreeChart updateChart(GraphElements gElem) {
+	 jChart = ChartFactory.createXYLineChart( 
+				"Record File",  
+				"Time",  
+				null,
+				getChartData(gElem),   
+				PlotOrientation.VERTICAL, 
+				false,  
+				true,  
+				false 
+				); 
+	 	//jChart.fireChartChanged();
+		return jChart;
 	}
 
-	private int MAX_ROWS_TO_DISPLAY = 8;
-	public void listRecords(List list) {
+	private int MAX_ROWS_TO_DISPLAY = 1000;
+	public List<String> listRecords() {
+		List<String> recList = new ArrayList<String>();
 		SpeedFile sFile = new SpeedFile(fileName);
 		sFile.readRecordingFile();
 		int recCtr = 0;
@@ -86,11 +109,12 @@ public class JChartManager {
 			if (speeds[0] == 999.0) {
 				break;
 			}
-			list.add(sRec.toString());
+			recList.add(sRec.toString());
 			recCtr++;
 			if (recCtr > MAX_ROWS_TO_DISPLAY)
 				break;
-		} while(true);		
+		} while(true);	
+		return recList;
 	}
 	
 //	public void test()
