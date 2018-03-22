@@ -80,7 +80,7 @@ public class SpeedRecord {
 
 	public SpeedRecord endOfFile() {
 		id = 999;
-		totalTime = 9999000.0; //milliseconds
+		totalTime = 9999000.0; //seconds  FPGA (Seconds) System.currentTimeMillis
 		deltaTime = 9999.0;
 		leftSpeed = 999.0;
 		rightSpeed = 999.0;
@@ -94,7 +94,8 @@ public class SpeedRecord {
 	@Override
 	public String toString() {   // total time in second
 		String formatter =  "%04d %10.5f %8.5f %8.5f %8.5f %8.5f %8.5f %8.5f %8.5f";
-		String fmt = String.format(formatter,id,totalTime / 1000.0,deltaTime,leftSpeed,rightSpeed,leftDistance,rightDistance,leftVelocity,rightVelocity);
+		//String fmt = String.format(formatter,id,totalTime,deltaTime,leftSpeed,rightSpeed,leftDistance,rightDistance,leftVelocity,rightVelocity);
+		String fmt = String.format(formatter,id,totalTime/1000.0,deltaTime,leftSpeed,rightSpeed,leftDistance,rightDistance,leftVelocity,rightVelocity);
 		return fmt;
 	}
 }

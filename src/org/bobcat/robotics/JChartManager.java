@@ -8,6 +8,7 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
+
 import org.usfirst.frc.team177.lib.SpeedFile;
 import org.usfirst.frc.team177.lib.SpeedRecord;
 
@@ -20,7 +21,7 @@ public class JChartManager {
 	}
 
 	public  JChartManager(String fileName) {
-		super();
+		this();
 		this.fileName = fileName;
 	}
 	

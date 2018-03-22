@@ -1,23 +1,16 @@
 package org.bobcat.robotics;
 
-import javax.swing.JFileChooser;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.RowData;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.widgets.List;
-import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
-import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.experimental.chart.swt.ChartComposite;
 
@@ -32,7 +25,7 @@ public class FileEditor {
 	private final JChartManager chartMgr = new JChartManager(fileName);
 	private final JFreeChart fileGraph = chartMgr.initChart();
 	private ChartComposite displayGraph = null;
-
+	
 
 	/**
 	 * Launch the application.
@@ -44,6 +37,7 @@ public class FileEditor {
 			FileEditor window = new FileEditor();
 			window.open();
 		} catch (Exception e) {
+			System.out.println("File Editor error " + e);
 			e.printStackTrace();
 		}
 	}
