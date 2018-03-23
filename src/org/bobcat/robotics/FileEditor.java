@@ -20,7 +20,7 @@ public class FileEditor {
 	
 	// Application Variables
 	//private String fileName = "right2scale_short.txt";
-	private String fileName = "center2right.speeds.txt";
+	private String fileName = "center2left.speeds.txt";
 	//private final JFileChooser fileChooser = new JFileChooser();
 	private final JChartManager chartMgr = new JChartManager(fileName);
 	private final JFreeChart fileGraph = chartMgr.initChart();
@@ -99,8 +99,8 @@ public class FileEditor {
 		displayGraph.setHorizontalAxisTrace(true);
 		displayGraph.setVerticalAxisTrace(true);
 		displayGraph.setVerticalAxisTrace(false);
-		displayGraph.setLayoutData(new RowData(988, 418));
-		displayGraph.setSize(988,388);
+		displayGraph.setLayoutData(new RowData(988, 408));
+		displayGraph.setSize(988,408);
 		System.out.println("Graph size is " + displayGraph.getSize());
 		
 		// The List
@@ -144,6 +144,8 @@ public class FileEditor {
 		distanceItem.setText("&Distance");
 		MenuItem velocityItem = new MenuItem(dataMenu, SWT.PUSH);
 		velocityItem.setText("&Velocity");
+		MenuItem pathItem = new MenuItem(dataMenu, SWT.PUSH);
+		pathItem.setText("&Robot Path");
 
 		// Add Selection Handlers
 		openItem.addSelectionListener(new SelectionAdapter() {
@@ -183,6 +185,12 @@ public class FileEditor {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				updateGraph(GraphElements.VELOCITY);
+			}
+		});	
+		pathItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				updateGraph(GraphElements.ROBOTPATH);
 			}
 		});	
 		return menuBar;
