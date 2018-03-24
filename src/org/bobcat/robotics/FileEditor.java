@@ -1,10 +1,16 @@
 package org.bobcat.robotics;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.PaintEvent;
+import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.RowData;
 import org.eclipse.swt.layout.RowLayout;
+import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
@@ -63,6 +69,7 @@ public class FileEditor {
 	protected void createContents() {
 		shlFileEditor = new Shell(); //SWT.NO_REDRAW_RESIZE, SHELL_TRIM (CLOSE|TITLE|MIN|MAX|RESIZE)
 		shlFileEditor.setSize(1024, 768);
+		//shlFileEditor.
 		shlFileEditor.setText("File Editor");
 		
 		
@@ -85,11 +92,11 @@ public class FileEditor {
 		rowLayout.pack = true;
 		rowLayout.justify = false;
 		rowLayout.type = SWT.VERTICAL;
-		rowLayout.marginLeft = 1;
-		rowLayout.marginRight = 1;
+		rowLayout.marginLeft = 2;
+		rowLayout.marginRight = 2;
 		rowLayout.marginTop = 0;
 		rowLayout.marginBottom = 0;
-		rowLayout.spacing = 0;
+		rowLayout.spacing = 1;
 		shlFileEditor.setLayout(rowLayout);
 		shlFileEditor.setMenuBar(buildMenu());
 
@@ -102,22 +109,26 @@ public class FileEditor {
 		displayGraph.setLayoutData(new RowData(988, 408));
 		displayGraph.setSize(988,408);
 		System.out.println("Graph size is " + displayGraph.getSize());
-		
+
+		// The Status Bar
+		Label statusBar = new Label(shlFileEditor,/*SWT.BORDER*/ SWT.NONE);
+		statusBar.setText(fileName + "        " + "Records - " + chartMgr.getTotalRecords());
+		statusBar.setLayoutData(new RowData(988, 30));
+		statusBar.setSize(988, 30);
+		statusBar.setBackground(new Color(Display.getCurrent(),255,255,255));
+		drawBorder(statusBar);
+		System.out.println("Status Bar size is " + statusBar.getSize());
+
 		// The List
 		Text fileList = new Text(shlFileEditor, /*SWT.BORDER |*/ SWT.V_SCROLL | SWT.MULTI);
 		java.util.List<String> records = chartMgr.listRecords(); 
 		for (String rec : records) {
 			fileList.append(rec + "\n");
 		}
-		fileList.setLayoutData(new RowData(958, 236));
-		fileList.setSize(958, 186);
+		fileList.setLayoutData(new RowData(954, 236));
+		fileList.setSize(954, 186);
 		System.out.println("List size is " + fileList.getSize());
-		
-		Label statusBar = new Label(shlFileEditor,SWT.BORDER);
-		statusBar.setText(fileName);
-		statusBar.setLayoutData(new RowData(988, 30));
-		statusBar.setSize(988, 30);
-		System.out.println("Status Bar size is " + statusBar.getSize());
+
 	}
 	
 	private Menu buildMenu() {
@@ -201,6 +212,25 @@ public class FileEditor {
 		//displayGraph.forceRedraw();
 		//shlFileEditor.redraw();
 	}
+	
+   private void drawBorder(Control cont){
+        final Control control = cont;
+
+        cont.getParent().addPaintListener(new PaintListener(){
+    		@Override
+            public void paintControl(PaintEvent e){
+                GC gc = e.gc;
+                //Color color = new Color(null, 255, 0 ,0); // RED
+                Color color = new Color(null, 128, 128, 128); // BLACK
+                gc.setBackground(color);
+                Rectangle rect = control.getBounds();
+                Rectangle rect1 = new Rectangle(rect.x - 2, rect.y - 2,
+                        rect.width + 4, rect.height + 4);
+                gc.setLineStyle(SWT.LINE_SOLID);
+                gc.fillRectangle(rect1);
+            }
+        });
+    }
 	
 //    static int getMenuHeight(Menu parent)
 //    {

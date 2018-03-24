@@ -16,6 +16,7 @@ import org.usfirst.frc.team177.lib.SpeedRecord;
 
 public class JChartManager {
 	private String fileName = null;
+	private int nbrRecords = 0;
 	private JFreeChart jChart = null;
 
 	private JChartManager() {
@@ -27,6 +28,9 @@ public class JChartManager {
 		this.fileName = fileName;
 	}
 	
+	public int getTotalRecords() {
+		return nbrRecords;
+	}
 	public XYSeriesCollection getChartData(GraphElements type) {
 		// line plot
 		// X Axis = Time, Y Axis = [Speed, or Distance, or Velocity]
@@ -58,6 +62,7 @@ public class JChartManager {
 			}
 			recCtr++;
 		} while(true);
+		nbrRecords = recCtr;
 		XYSeriesCollection sColl = new XYSeriesCollection();
 		sColl.addSeries(lineData1);
 		sColl.addSeries(lineData2);
@@ -100,6 +105,8 @@ public class JChartManager {
 
 			recCtr++;
 		} while(true);
+		nbrRecords = recCtr;
+
 		// This is an example, for fun multiple charts so that they have approximate same range 
 		// add left distance +  left velocity + left power
 		//
