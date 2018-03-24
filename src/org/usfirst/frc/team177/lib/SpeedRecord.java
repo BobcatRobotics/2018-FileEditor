@@ -98,7 +98,8 @@ public class SpeedRecord {
 
 	public SpeedRecord endOfFile() {
 		id = EOF;
-		totalTime = 9999000.0; //seconds  FPGA (Seconds) System.currentTimeMillis
+		totalTime = 9999999.0; //System.currentTimeMillis  (millis)
+		//totalTime = 9999.0; //Timer.getFPGATimestamp()  (seconds)  
 		deltaTime = 9999.0;
 		leftPower = 999.0;
 		rightPower = 999.0;

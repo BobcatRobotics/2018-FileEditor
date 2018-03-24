@@ -132,6 +132,13 @@ public class SpeedFile {
 		return maxCtr;
 	}
 
+	public double getTotalTime() {
+		SpeedRecord speedObj = eof;
+		if (passCtr < maxCtr) {
+			speedObj = speeds.get(passCtr);
+		}	
+		return speedObj.getElapsedTime(false);
+	}
 	// getPower() advances passCtr
 	public double[] getPower() {
 		SpeedRecord speedObj = eof;
