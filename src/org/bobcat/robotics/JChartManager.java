@@ -42,12 +42,12 @@ public class JChartManager {
 		int recCtr = 0;
 		do {
 			SpeedRecord sRec = sFile.getRawData(recCtr);
+			if (sRec.getID() == SpeedRecord.EOF)  {
+				break;
+			}
 			double [] distance = sFile.getDistance();
 			double [] velocity = sFile.getVelocity();
 			double [] powers = sFile.getPower();
-			if (powers[0] == 999.0) {
-				break;
-			}
 			if (GraphElements.POWER == type) {
 				lineData1.add(sRec.getElapsedTime(false),powers[0]);
 				lineData2.add(sRec.getElapsedTime(false),powers[1]);

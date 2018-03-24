@@ -72,14 +72,14 @@ public class SpeedFile {
 	public void readRecordingFile() {
 		reset();
 		speeds.clear();
-
+		String sEOF = new Integer(SpeedRecord.EOF).toString();
 		Scanner sc;
 		try {
 			sc = new Scanner(new File(fileName));
 			while (sc.hasNextLine()) {
 				String row = sc.nextLine();
 				String[] result = row.split("\\s+");
-				if ("9999".equals(result[0]))
+				if (sEOF.equals(result[0]))
 					break;
 				SpeedRecord speedObj = new SpeedRecord();
 				speedObj.setReadKeys(row);
