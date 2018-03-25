@@ -18,6 +18,26 @@ public class JChartManager {
 	private String fileName = null;
 	private int nbrRecords = 0;
 	private JFreeChart jChart = null;
+	
+	// Make up vars for constants, and some arrays to hold data from calculations
+	private double eps = 0.000001;           // A small number to keep from dividing by zero
+	private double xxmax = 648.0;
+	private double xxmin = -648.0;
+	private double yymax = 648.0;
+	private double yymin = -648.0;
+	private double Rmax = 1000000.0;
+	private double Rmin = -1000000.0;
+	private double deltadot;                 // delta between rddotf and lddotf
+	private double wb = 26;                  // robot wheel base in inches
+	private double xx[] = new double[10000]; // x position of robot in inches
+	private double yy[] = new double[10000]; // y position of robot in inches
+	private double w[] = new double[10000];  // angualr velocity of robot, calc'd from wheel velocity in rads/sec
+	private double theta[] = new double[10000]; // angle of robot forward vector wrt x axis in rads
+	private double iccx[] = new double[10000]; // x position of ICC in inches
+	private double iccy[] = new double[10000]; // y position of ICC in inches
+	private double R[] = new double[10000]; // signed distance from center of drive train to icc
+	private double lddotf[] = new double[10000];  // forward diff calc of left vel [v(i) = (d(i+1) - d(i))/dt(i+1)]
+	private double rddotf[] = new double[10000];  // forward diff calc of right vel
 
 	private JChartManager() {
 		super();
@@ -96,9 +116,9 @@ public class JChartManager {
 				power[recCtr][idx] = pow[idx];
 				distance[recCtr][idx] = dist[idx];
 				velocity[recCtr][idx]  = vel[idx];
-				if (idx == 0) {
-					RioLogger.debugLog("id distance,velocity " + sRec.getID() + " " + distance[recCtr][0] + ", " + velocity[recCtr][0]);
-				}
+//				if (idx == 0) {
+//					RioLogger.debugLog("id distance,velocity " + sRec.getID() + " " + distance[recCtr][0] + ", " + velocity[recCtr][0]);
+//				}
 			}
 			elapsedTime[recCtr] = sRec.getElapsedTime(false);
 			deltaTime[recCtr] = sRec.getDeltaTime(false);
@@ -110,14 +130,57 @@ public class JChartManager {
 		// This is an example, for fun multiple charts so that they have approximate same range 
 		// add left distance +  left velocity + left power
 		//
-		// You would replaced by the path calculated values for (X,Y)
-		for (int point = 0; point < recCtr; point++) {
-			double tot = power[point][0] * 275;
-			tot += distance[point][0] * 1.31;
-			tot += velocity[point][0] * 2.5;
-			tot /= 100.0;
-			lineData1.add(elapsedTime[point],tot);  // (X,Y)
+		// Set the first point by hand, then loop over the rest of the points stopping 1 before the end.
+		xx[0] = 0.0;
+		yy[0] = 0.0;
+		theta[0] = 1.571;
+		lineData1.add(xx[0],yy[0]);  // (X,Y)
+		for (int point = 0; point < recCtr-1; point++) {
+//			lddotf[point] = (distance[point+1][0] - distance[point][0])/deltaTime[point+1];
+//			rddotf[point] = (distance[point+1][1] - distance[point][1])/deltaTime[point+1];
+			lddotf[point] = velocity[point][0];
+			rddotf[point] = velocity[point][1];
+			deltadot = rddotf[point] - lddotf[point];
+			if ((deltadot < eps) && (deltadot > -eps)) {
+				R[point] = 1000000.0;    // robot driving straight or stopped
+				w[point] = 0.0;          // and not turning
+			} else {
+				w[point] = (rddotf[point] - lddotf[point])/wb;
+				R[point] = wb/2.0 * (lddotf[point] + rddotf[point])/deltadot; // robot curving
+			}
+			if (R[point] > Rmax) {R[point]=Rmax;}
+			if (R[point] < Rmin) {R[point]=Rmin;}
+
+			iccx[point] = xx[point] - R[point]*Math.sin(theta[point]);
+			iccy[point] = yy[point] + R[point]*Math.cos(theta[point]);
+
+			xx[point+1] = Math.cos(w[point]*deltaTime[point+1])*(xx[point] - iccx[point]) - Math.sin(w[point]*deltaTime[point+1])*(yy[point] - iccy[point]) + iccx[point];
+			yy[point+1] = Math.sin(w[point]*deltaTime[point+1])*(xx[point] - iccx[point]) + Math.cos(w[point]*deltaTime[point+1])*(yy[point] - iccy[point]) + iccy[point];
+			theta[point+1] = theta[point] + w[point]*deltaTime[point+1];
+			
+			// Keep xx and yy in the 'vicinity' of the field
+			if (xx[point+1] < xxmin) {xx[point+1] = xxmin;}
+			if (xx[point+1] > xxmax) {xx[point+1] = xxmax;}
+			if (yy[point+1] < yymin) {yy[point+1] = yymin;}
+			if (yy[point+1] > yymax) {yy[point+1] = yymax;}
+
+			// Print some debugging info
+			// if ((xx[point+1] < -25.0) && (xx[point+1] > -35.0)) {
+			if (point < 300) {
+				RioLogger.debugLog("pass="+point+" lddotf="+lddotf[point]+" rddotf="+rddotf[point]+" theta="+theta[point]+" iccx="+xx[point]+" iccy="+iccy[point]+" xx="+xx[point+1] + " yy="+yy[point+1]);
+			}
+			if (point < 200) {
+			   lineData1.add(yy[point+1],-1.0*xx[point+1]);  // (X,Y)
+			}
 		}
+		// Create intermediate vars in the last row just for completeness
+		lddotf[recCtr] = lddotf[recCtr-1];
+		rddotf[recCtr] = rddotf[recCtr-1];
+		w[recCtr] = w[recCtr-1];
+		R[recCtr] = R[recCtr-1];
+		iccx[recCtr] = iccx[recCtr-1];
+		iccy[recCtr] = iccy[recCtr-1];
+		
 		XYSeriesCollection sColl = new XYSeriesCollection();
 		sColl.addSeries(lineData1);
 		return sColl;
@@ -160,6 +223,7 @@ public class JChartManager {
 				false,  
 				false 
 			); 
+
 //	 	jChart.fireChartChanged();
 //		jChart.addChangeListener(ChangeListener);
 

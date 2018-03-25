@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.eclipse.equinox.log.LogFilter;
-
 //import edu.wpi.first.wpilibj.Timer;
 
 public class RioLoggerThread {
