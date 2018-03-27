@@ -126,7 +126,7 @@ public class RioLoggerThread {
 			try {
 				newDir.mkdir();
 			} catch (SecurityException e) {
-				System.out.println("RioLoggerThread Security exception " + e);
+				RioLogger.debugLog("RioLoggerThread Security exception " + e);
 			}
 		}
 	}
@@ -143,7 +143,7 @@ public class RioLoggerThread {
 			// Close the file
 			outputStream.close();
 		} catch (IOException e) {
-			System.out.println("RioLoggerThread Error writing log " + e);
+			RioLogger.debugLog("RioLoggerThread Error writing log " + e);
 		}
 	}
 }

@@ -65,7 +65,7 @@ public class SpeedFile {
 			String err = "SpeedFile.stopRecoring() error " + e.getMessage();
 			//DriverStation.reportError(err, false);
 			//RioLogger.log(err);
-			System.out.println(err);
+			RioLogger.debugLog(err);
 		}
 	}
 
@@ -96,7 +96,7 @@ public class SpeedFile {
 			passCtr = 0;
 		} catch (FileNotFoundException e) {
 			String err = "SpeedFile.readRecoring() error " + e.getMessage();
-			System.out.println(err);
+			RioLogger.debugLog(err);
 		}
 	}
 

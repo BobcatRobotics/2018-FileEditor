@@ -214,7 +214,7 @@ public class JChartManager {
 				break;
 		}
 		JFreeChart newChart = ChartFactory.createXYLineChart( 
-				"Record File",  
+				null,  
 				"Time",  
 				yLegend,
 				data,   
@@ -223,7 +223,6 @@ public class JChartManager {
 				false,  
 				false 
 			); 
-
 //	 	jChart.fireChartChanged();
 //		jChart.addChangeListener(ChangeListener);
 

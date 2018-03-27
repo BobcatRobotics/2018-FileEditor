@@ -42,14 +42,16 @@ public class RioLogger {
 
 	// Log diagnostic statements --> RioLoggerThread
 	public static void debugLog (String line) {
-		RioLoggerThread.log(line);
-		System.out.println("DEBUG - " + line);
+		//RioLoggerThread.log(line);
+		//RioLogger.debugLog("DEBUG - " + line);
+		System.out.println(line);
 	}
 	
 	// Log Errors --> Driver Station, console
 	public static void errorLog (String line) {
 		//DriverStation.reportError(line,false);
 		RioLogger.log(line);
-		System.out.println("ERROR - " + line);
+		RioLogger.debugLog("ERROR - " + line);
+		System.out.println("ERROR " + line);
 	}
 }

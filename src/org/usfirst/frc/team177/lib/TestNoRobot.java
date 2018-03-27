@@ -90,7 +90,7 @@ public class TestNoRobot {
 
 	private static void log(String text) {
 		RioLogger.log(text);
-		System.out.println(text);
+		RioLogger.debugLog(text);
 	}
 	
 
