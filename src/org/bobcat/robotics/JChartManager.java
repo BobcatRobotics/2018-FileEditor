@@ -143,7 +143,7 @@ public class JChartManager {
 			deltadot = rddotf[point] - lddotf[point];
 			if ((deltadot < eps) && (deltadot > -eps)) {
 				R[point] = 1000000.0;    // robot driving straight or stopped
-				w[point] = 0.0;          // and not turning
+				w[point] = lddotf[point]/1000000.0;          // w to allow the robot to progress straight
 			} else {
 				w[point] = (rddotf[point] - lddotf[point])/wb;
 				R[point] = wb/2.0 * (lddotf[point] + rddotf[point])/deltadot; // robot curving
