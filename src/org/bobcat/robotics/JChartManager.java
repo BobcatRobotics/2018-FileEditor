@@ -1,6 +1,11 @@
 package org.bobcat.robotics;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.jfree.chart.ChartFactory;
@@ -15,9 +20,13 @@ import org.usfirst.frc.team177.lib.SpeedFile;
 import org.usfirst.frc.team177.lib.SpeedRecord;
 
 public class JChartManager {
+	private static final String dateFmt = "yyyy-MM-dd_hh.mm.ss'.txt'";
 	private String fileName = null;
 	private int nbrRecords = 0;
 	private JFreeChart jChart = null;
+	// SpeedFile - used in getChartData(), getRobotPathData()
+	private SpeedFile speedFile = null;
+	private List<String> recList = null;
 	
 	// Make up vars for constants, and some arrays to hold data from calculations
 	private double eps = 0.000001;           // A small number to keep from dividing by zero
@@ -51,23 +60,32 @@ public class JChartManager {
 	public int getTotalRecords() {
 		return nbrRecords;
 	}
+	
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+	
 	public XYSeriesCollection getChartData(GraphElements type) {
 		// line plot
 		// X Axis = Time, Y Axis = [Speed, or Distance, or Velocity]
 		XYSeries lineData1 = new XYSeries("Left");
 		XYSeries lineData2 = new XYSeries("Right");
 
-		SpeedFile sFile = new SpeedFile(fileName);
-		sFile.readRecordingFile();
+		recList = new ArrayList<String>();
+		speedFile = new SpeedFile(fileName);
+		speedFile.readRecordingFile();
 		int recCtr = 0;
 		do {
-			SpeedRecord sRec = sFile.getRawData(recCtr);
+			SpeedRecord sRec = speedFile.getRawData(recCtr);
 			if (sRec.getID() == SpeedRecord.EOF)  {
+				RioLogger.debugLog("getChartData() Found EOF " + sRec.toString());
 				break;
 			}
-			double [] distance = sFile.getDistance();
-			double [] velocity = sFile.getVelocity();
-			double [] powers = sFile.getPower();
+			recList.add(sRec.toString());
+
+			double [] distance = speedFile.getDistance();
+			double [] velocity = speedFile.getVelocity();
+			double [] powers = speedFile.getPower();
 			if (GraphElements.POWER == type) {
 				lineData1.add(sRec.getElapsedTime(false),powers[0]);
 				lineData2.add(sRec.getElapsedTime(false),powers[1]);
@@ -94,9 +112,10 @@ public class JChartManager {
 		// X Axis = Time, Y Axis = [Speed, or Distance, or Velocity]
 		XYSeries lineData1 = new XYSeries("Path");
 
-		SpeedFile sFile = new SpeedFile(fileName);
-		sFile.readRecordingFile();
-		int nbrRecords = sFile.getNbrOfRows();
+		recList = new ArrayList<String>();
+		speedFile = new SpeedFile(fileName);
+		speedFile.readRecordingFile();
+		int nbrRecords = speedFile.getNbrOfRows();
 		RioLogger.debugLog("nbr Rows = " + nbrRecords);
 		int recCtr = 0;
 		double [][] distance = new double[nbrRecords][2];
@@ -105,13 +124,16 @@ public class JChartManager {
 		double [] deltaTime = new double[nbrRecords];
 		double [] elapsedTime =  new double[nbrRecords]; // For Testing only 
 		do {
-			SpeedRecord sRec = sFile.getRawData(recCtr);
+			SpeedRecord sRec = speedFile.getRawData(recCtr);
 			if (sRec.getID() == SpeedRecord.EOF)  {
+				RioLogger.debugLog("getChartRobotPathData() Found EOF " + sRec.toString() /*+ " prev veloc " + prevVeloticy[0]*/);
 				break;
 			}
-			double [] dist = sFile.getDistance();
-			double [] vel = sFile.getVelocity();
-			double [] pow = sFile.getPower();
+			recList.add(sRec.toString());
+
+			double [] dist = speedFile.getDistance();
+			double [] vel = speedFile.getVelocity();
+			double [] pow = speedFile.getPower();
 			for (int idx=0;idx < 2;idx++) {
 				power[recCtr][idx] = pow[idx];
 				distance[recCtr][idx] = dist[idx];
@@ -143,7 +165,7 @@ public class JChartManager {
 			deltadot = rddotf[point] - lddotf[point];
 			if ((deltadot < eps) && (deltadot > -eps)) {
 				R[point] = 1000000.0;    // robot driving straight or stopped
-				w[point] = lddotf[point]/1000000.0;          // w to allow the robot to progress straight
+				w[point] = lddotf[point] / 1000000.0;          // and not turning
 			} else {
 				w[point] = (rddotf[point] - lddotf[point])/wb;
 				R[point] = wb/2.0 * (lddotf[point] + rddotf[point])/deltadot; // robot curving
@@ -229,26 +251,15 @@ public class JChartManager {
 		return newChart;
 	}
 	
-	// TODO :: Add list record functionality to getChartData(), getChartRobotPathData()
-	//      :: XXXX Why read file twice
-	private int MAX_ROWS_TO_DISPLAY = 1000;
 	public List<String> listRecords() {
-		List<String> recList = new ArrayList<String>();
-		SpeedFile sFile = new SpeedFile(fileName);
-		sFile.readRecordingFile();
-		int recCtr = 0;
-		do {
-			SpeedRecord sRec = sFile.getRawData(recCtr);
-			if (sRec.getID() == SpeedRecord.EOF)  {
-				RioLogger.debugLog("listRecords Found EOF " + sRec.toString() /*+ " prev veloc " + prevVeloticy[0]*/);
-					break;
-			}
-			recList.add(sRec.toString());
-			recCtr++;
-			if (recCtr > MAX_ROWS_TO_DISPLAY)
-				break;
-		} while(true);	
 		return recList;
+	}
+
+	public boolean updateSpeedFile(boolean delete, String inputFrom, String inputTo) {
+		String[] namesplit = fileName.split("\\.");
+		String datePath = new SimpleDateFormat(dateFmt).format(new Date());
+		String archiveSpeedFileName = namesplit[0] + ".speeds." + datePath;
+		return speedFile.updateRecordingFile(archiveSpeedFileName, delete, new Integer(inputFrom), new Integer(inputTo));
 	}
 	
 //	public void test()

@@ -1,5 +1,9 @@
 package org.bobcat.robotics;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.events.PaintEvent;
@@ -15,6 +19,7 @@ import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.FileDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
@@ -31,14 +36,15 @@ public class FileEditor {
 	private ScrolledComposite cntPnl = null; // Panel to house current layout
 	
 	private String fileName = "center2left.speeds.txt";
-	//private final JFileChooser fileChooser = new JFileChooser();
 	private final JChartManager chartMgr = new JChartManager(fileName);
-	//private JavaFXManager fxMgr = null;
 	private final JFreeChart fileGraph = chartMgr.initChart();
 	private ChartComposite displayGraph = null;
-	//private FXCanvas fileAnimator = null;
 	private Label statusBar = null;
 	private Text fileList = null;
+	
+	//private JavaFXManager fxMgr = null;
+	//private FXCanvas fileAnimator = null;
+
 	
 
 	/**
@@ -80,7 +86,7 @@ public class FileEditor {
 	protected void createContents() {
 		shlFileEditor = new Shell(); //SWT.NO_REDRAW_RESIZE, SHELL_TRIM (CLOSE|TITLE|MIN|MAX|RESIZE)
 		shlFileEditor.setSize(1024, 768);
-		shlFileEditor.setText("File Editor");
+		shlFileEditor.setText("File Editor - " + fileName);
 		shlFileEditor.setMenuBar(buildMenu());
 		shlFileEditor.setLayout(getLayout());
 	
@@ -150,7 +156,7 @@ public class FileEditor {
 		RioLogger.debugLog("(1) y, x is " + yPos + ", " + xPos);
 
 		// The Status Bar
-		Label statusBar = new Label(content,SWT.BORDER/* SWT.NONE*/);
+		statusBar = new Label(content,SWT.BORDER/* SWT.NONE*/);
 		statusBar.setText(" " + fileName + " | Records - " + chartMgr.getTotalRecords());
 		statusBar.setLayoutData(new GridData(pstatus.x,pstatus.y));
 		statusBar.setSize(pstatus.x,pstatus.y);
@@ -163,8 +169,8 @@ public class FileEditor {
 		RioLogger.debugLog("(2) y, x is " + yPos + ", " + xPos);
 		
 		// The List
-		Text fileList = new Text(content, /*SWT.BORDER |*/ SWT.V_SCROLL | SWT.MULTI);
-		java.util.List<String> records = chartMgr.listRecords(); 
+		fileList = new Text(content, /*SWT.BORDER |*/ SWT.V_SCROLL | SWT.MULTI);
+		List<String> records = chartMgr.listRecords(); 
 		for (String rec : records) {
 			fileList.append(rec + "\n");
 		}
@@ -175,27 +181,6 @@ public class FileEditor {
 		RioLogger.debugLog("List computesize is " + fileList.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 	}
 	
-	private void refreshUILayout(boolean redraw,boolean animation) {
-		// Chart or FXCanvas (Either the chart  or FXCanvas will be visible)
-		// Chart is used to display 2D Charts of the data
-		// FXCanvas is used to animate the Robot path. 
-		//shlFileEditor.setParent(currentParent);
-		
-		if (animation) {
-			//fxMgr.animate();
-			//RioLogger.debugLog("FX Animation panel size is " + fileAnimator.getSize());
-		}
-		
-		if (redraw) {
-			Point pcomp = new Point(988,672);
-			cntPnl.setBounds(0, 0, pcomp.y, pcomp.x);
-			cntPnl.setMinSize(pcomp);
-			content.setSize(pcomp);
-			content.redraw();
-			shlFileEditor.layout();
-			shlFileEditor.pack();
-		}
-	}
 
 	
 	private Menu buildMenu() {
@@ -227,18 +212,48 @@ public class FileEditor {
 		MenuItem robotAnimateItem = new MenuItem(dataMenu, SWT.PUSH);
 		robotAnimateItem.setText("&Animate Path");
 
+		// Data Menu
+		MenuItem editorMenu = new MenuItem(menuBar, SWT.CASCADE);
+		editorMenu.setText("&Edit");
+		Menu editMenu = new Menu(shlFileEditor, SWT.DROP_DOWN);
+		editorMenu.setMenu(editMenu);
+		MenuItem deleteItem = new MenuItem(editMenu, SWT.PUSH);
+		deleteItem.setText("&Delete Rows");
+		MenuItem addItem = new MenuItem(editMenu, SWT.PUSH);
+		addItem.setText("&Add Rows");
+
 		// Add Selection Handlers
 		openItem.addSelectionListener(new SelectionAdapter() {
-//			@Override
-//			public void widgetSelected(SelectionEvent e) {
-//				FileNameExtensionFilter filter = new FileNameExtensionFilter("Recorder Files", "txt");
-//				fileChooser.setFileFilter(filter);
-//				fileChooser.setCurrentDirectory(new File("c://home//lvuser"));
-//				int returnVal = fileChooser.showOpenDialog(null);
-//				if (returnVal == JFileChooser.APPROVE_OPTION) {
-//					RioLogger.debugLog("You chose to open this file: " + fileChooser.getSelectedFile().getName());
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+//				JFileChooser jfc = new JFileChooser("\\home\\lvuser");
+//				jfc.setDialogTitle("Select a Robot Path File");
+//				jfc.setAcceptAllFileFilterUsed(false);
+//				FileNameExtensionFilter filter = new FileNameExtensionFilter("Path File", "txt");
+//				jfc.addChoosableFileFilter(filter);
+//
+//				int returnValue = jfc.showOpenDialog(jfc);
+//				if (returnValue == JFileChooser.APPROVE_OPTION) {
+//					fileName = jfc.getSelectedFile().getPath();
+//					RioLogger.debugLog(jfc.getSelectedFile().getPath());
+//					refreshUILayout(true, false);
 //				}
-//			}
+				
+				String [] filterNames = { "*.speeds" };
+				FileDialog jfc = new FileDialog(shlFileEditor,SWT.OPEN);
+				jfc.setFilterPath("\\home\\lvuser");
+				jfc.setFilterNames(filterNames);
+				jfc.setText("Select Robot Path File");
+				String selectFile = jfc.open();
+				if (selectFile != null && selectFile.length() > 0 ) {
+					Path pth = Paths.get(selectFile);
+					String filename = pth.getFileName().toString();
+					RioLogger.log(filename);
+					fileName = filename;
+					refreshUIFileComponents();
+					refreshUILayout(true, false);
+				}
+			}
 		});
 		
 		exitItem.addSelectionListener(new SelectionAdapter() {
@@ -280,10 +295,76 @@ public class FileEditor {
 				//refreshUILayout(true,true);
 			}
 		});	
+		deleteItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				InputDialog delDialog = new InputDialog(shlFileEditor);
+				delDialog.setRecordCount(chartMgr.getTotalRecords());
+				String [] inputs = delDialog.open();
+				// Validate inputs
+				if (delDialog.validInput()) {
+					if (updateFile(true,inputs)) {
+						refreshUIFileComponents();
+						refreshUILayout(true, false);
+					}
+				}
+			}
+		});	
+		addItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				//updateGraph(GraphElements.ROBOTPATH);
+				//refreshUILayout(true,true);
+			}
+		});	
 
 		return menuBar;
 	}
-	
+
+	private boolean updateFile(boolean delete,String[] inputs) {
+		// TODO Auto-generated method stub
+		RioLogger.debugLog("From Field: " + inputs[0]);
+		RioLogger.debugLog("To Field: " + inputs[1]);
+		return chartMgr.updateSpeedFile(delete,inputs[0],inputs[1]);
+	}
+
+	private void refreshUILayout(boolean redraw,boolean animation) {
+		// Chart or FXCanvas (Either the chart  or FXCanvas will be visible)
+		// Chart is used to display 2D Charts of the data
+		// FXCanvas is used to animate the Robot path. 
+		//shlFileEditor.setParent(currentParent);
+		
+		if (animation) {
+			//fxMgr.animate();
+			//RioLogger.debugLog("FX Animation panel size is " + fileAnimator.getSize());
+		}
+		
+		if (redraw) {
+			Point pcomp = new Point(988,672);
+			cntPnl.setBounds(0, 0, pcomp.y, pcomp.x);
+			cntPnl.setMinSize(pcomp);
+			content.setSize(pcomp);
+			content.redraw();
+			shlFileEditor.layout();
+			shlFileEditor.pack();
+		}
+	}
+
+	private void refreshUIFileComponents( ) {
+		// Update Program Title, label
+		shlFileEditor.setText("File Editor - " + fileName);
+		chartMgr.setFileName(fileName);
+		displayGraph.setChart(chartMgr.initChart());
+		statusBar.setText(" " + fileName + " | Records - " + chartMgr.getTotalRecords());
+		fileList.selectAll();
+		fileList.clearSelection();
+		List<String> records = chartMgr.listRecords(); 
+		for (String rec : records) {
+			fileList.append(rec + "\n");
+		}
+
+		
+	}
 	private void updateGraph(GraphElements gElem) {
 		displayGraph.setChart(chartMgr.updateChart(gElem));
 		refreshUILayout(true, false);
@@ -298,7 +379,7 @@ public class FileEditor {
     		@Override
             public void paintControl(PaintEvent e){
                 GC gc = e.gc;
-                Color color = new Color(Display.getCurrent(), 0, 0 ,255); // RED
+                Color color = new Color(Display.getCurrent(), 0, 0 ,255); // BLUE
                 //Color color = new Color(Display.getCurrent(), 128, 128, 128); // BLACK
                 gc.setBackground(color);
                 Rectangle rect = control.getBounds();

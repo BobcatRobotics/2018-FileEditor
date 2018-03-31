@@ -3,7 +3,7 @@ package org.usfirst.frc.team177.lib;
 public class TestNoRobot {
 	//static final String filename = "right2scale.txt";
 	static final String basefilename = "commands.txt";
-	static final double NBR_TEST_RECS = 50;
+	static final double NBR_TEST_RECS = 100;
 
 	public static void main(String[] args) throws InterruptedException {
 		boolean testCmd = false;
@@ -53,6 +53,9 @@ public class TestNoRobot {
 		SpeedFile sFile = new SpeedFile(filename);
 		sFile.startRecording();
 		for (int x = 0; x < NBR_TEST_RECS; x++) {
+			if (x == NBR_TEST_RECS - 1) {
+				System.out.println("Next to last");
+			}
 			sFile.addSpeed(new Double(x / NBR_TEST_RECS), new Double(x / NBR_TEST_RECS), x, -x, x+Math.PI, x-Math.PI);
 			Thread.currentThread();
 			Thread.sleep(20);
@@ -76,7 +79,6 @@ public class TestNoRobot {
 				log("EOF Record found. Rec Nbr  = " + recCtr);
 				break;
 			}
-				
 			double [] power = sFile.getPower();
 			if (power[0] == 999.0) {
 				break;
