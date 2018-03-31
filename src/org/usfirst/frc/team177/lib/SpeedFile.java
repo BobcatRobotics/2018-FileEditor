@@ -62,6 +62,7 @@ public class SpeedFile {
 			printWriter.println(eof.toString());
 			printWriter.flush();
 			printWriter.close();
+			fileWriter.close();
 		} catch (IOException e) {
 			String err = "SpeedFile.stopRecoring() error " + e.getMessage();
 			//DriverStation.reportError(err, false);
@@ -91,6 +92,7 @@ public class SpeedFile {
 				//RioLogger.debugLog("added record " + passCtr + " " +speedObj.toString());
 				passCtr++;
 			}
+			sc.close();
 			maxCtr = passCtr;
 			RioLogger.debugLog("maxCtr = " + maxCtr);
 			// File was read, now prime the passCounter for reading back each row
@@ -120,7 +122,9 @@ public class SpeedFile {
 		// For delete figure out total time being deleted, subtract from remaining records.
 		double totalTimeFrom = 0.0;
 		double totalTimeTo = 0.0;
-		if (fromRec == 0) {
+		boolean deleteZeroRec = (fromRec == 0);
+		// Special condition, fromRec = 0
+		if (deleteZeroRec) {
 			SpeedRecord firstRecord = speeds.get(0);
 			totalTimeFrom = firstRecord.getElapsedTime(false);
 		} else {
@@ -137,6 +141,10 @@ public class SpeedFile {
 			FileWriter fileWriter = new FileWriter(file);
 			PrintWriter printWriter = new PrintWriter(fileWriter);
 			for (SpeedRecord speedObj : speeds) {
+				// Special condition, fromRec = 0
+				if (deleteZeroRec) {
+					printWriter.println(speedObj.toString());
+				} 
 				if (recCtr < fromRec) {
 					printWriter.println(speedObj.toString());
 					recCtr++;
@@ -146,6 +154,10 @@ public class SpeedFile {
 						newRecCtr = recCtr;
 					}
 					recCtr++;
+					if (deleteZeroRec) {
+						newRecCtr = recCtr;
+						deleteZeroRec = false;
+					}
 				} else {
 					if (recCtr > toRec) {
 						double newTotalTime = speedObj.getElapsedTime(false) - subtractTime;
@@ -158,6 +170,7 @@ public class SpeedFile {
 			printWriter.println(eof.toString());
 			printWriter.flush();
 			printWriter.close();
+			fileWriter.close();
 		} catch (IOException e) {
 			String err = "SpeedFile.updateRecordingFile() error " + e.getMessage();
 			//DriverStation.reportError(err, false);

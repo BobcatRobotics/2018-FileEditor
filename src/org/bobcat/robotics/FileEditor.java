@@ -362,9 +362,8 @@ public class FileEditor {
 		for (String rec : records) {
 			fileList.append(rec + "\n");
 		}
-
-		
 	}
+	
 	private void updateGraph(GraphElements gElem) {
 		displayGraph.setChart(chartMgr.updateChart(gElem));
 		refreshUILayout(true, false);
