@@ -79,6 +79,7 @@ public class TestNoRobot {
 				log("EOF Record found. Rec Nbr  = " + recCtr);
 				break;
 			}
+				
 			double [] power = sFile.getPower();
 			if (power[0] == 999.0) {
 				break;

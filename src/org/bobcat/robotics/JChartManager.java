@@ -262,6 +262,15 @@ public class JChartManager {
 		return speedFile.updateRecordingFile(archiveSpeedFileName, delete, new Integer(inputFrom), new Integer(inputTo));
 	}
 	
+	// TODO:: Remove when competition GrayHills are in sync
+	// TODO:: XXXXXXXXXXX
+	public boolean convertSpeedFile() {
+		String[] namesplit = fileName.split("\\.");
+		String datePath = new SimpleDateFormat(dateFmt).format(new Date());
+		String archiveSpeedFileName = namesplit[0] + ".speeds." + datePath;
+		return speedFile.updategrayHillValue(archiveSpeedFileName);
+	}
+	
 //	public void test()
 //	{
 //	      final JFreeChart chart = createChart();

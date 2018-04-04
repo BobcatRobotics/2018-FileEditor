@@ -103,6 +103,60 @@ public class SpeedFile {
 		}
 	}
 	
+	// This is temporary 
+	// TODO:: Remove once GrayHills are in sync
+	// TODO:: XXXXXXXXXXXXXXX
+	public boolean updategrayHillValue(String backupFileName) {
+		//RioLogger.debugLog("fromRec - toRec " + fromRec + ", " + toRec);
+		boolean updated = true;
+		File source = new File(fileName);
+		File dest =  new File(path+backupFileName);
+		   try {
+			Files.copy(source.toPath(), dest.toPath());
+		} catch (IOException e) {
+			String err = "SpeedFile.updateRecordingFile() error " + e;
+			RioLogger.debugLog(err);
+			return false;
+		}
+		   
+		try {
+			File file = new File(fileName);
+			FileWriter fileWriter = new FileWriter(file);
+			PrintWriter printWriter = new PrintWriter(fileWriter);
+			// First find max and min,
+			double maxLeft = -9999.0;
+			double minLeft = 9999.0;
+			double maxRight = -9999.0;
+			double minRight = 9999.0;
+			for (SpeedRecord speedObj : speeds) {
+				double [] dist = speedObj.getDistance();
+				if (dist[0] > maxLeft || (dist[0] < 0.0 && Math.abs(dist[0]) > maxLeft)) 	maxLeft = dist[0];
+				if (dist[0] < minLeft || (dist[0] < 0.0 && Math.abs(dist[0]) < minLeft))	minLeft = dist[0];
+				if (dist[1] > maxRight || (dist[1] < 0.0 && Math.abs(dist[1]) > maxRight)) maxRight = dist[1];
+				if (dist[1] < minRight || (dist[1] < 0.0 && Math.abs(dist[1]) < minRight))	minRight = dist[1];
+			}
+			double leftRange = maxLeft+minLeft;
+			double rightRange = maxRight+minRight;
+			for (SpeedRecord speedObj : speeds) {
+				double [] dist = speedObj.getDistance();
+				speedObj.setDistance((dist[0]*-2.0)+leftRange*2, (dist[1]*-2.0)+rightRange*2.0);
+				printWriter.println(speedObj.toString());
+			}
+			printWriter.println(eof.toString());
+			printWriter.flush();
+			printWriter.close();
+			fileWriter.close();
+		} catch (IOException e) {
+			String err = "SpeedFile.updateRecordingFile() error " + e.getMessage();
+			//DriverStation.reportError(err, false);
+			//RioLogger.log(err);
+			RioLogger.debugLog(err);
+			updated = false;
+		}
+		
+		return updated;
+	}
+	
 	public boolean updateRecordingFile(String backupFileName,boolean delete,int fromRec,int toRec) {
 		RioLogger.debugLog("fromRec - toRec " + fromRec + ", " + toRec);
 		boolean updated = true;
@@ -182,8 +236,6 @@ public class SpeedFile {
 		return updated;
 	}
 	
-	
-
 	public SpeedRecord getRawData(int index) {
 		SpeedRecord speedObj = eof;
 		if (index < maxCtr) {
