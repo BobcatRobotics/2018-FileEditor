@@ -105,6 +105,7 @@ public class SpeedFile {
 	
 	// This is temporary 
 	// TODO:: Remove once GrayHills are in sync
+	// TODO:: Changes made 04-05-195
 	// TODO:: XXXXXXXXXXXXXXX
 	public boolean updategrayHillValue(String backupFileName) {
 		//RioLogger.debugLog("fromRec - toRec " + fromRec + ", " + toRec);
@@ -123,23 +124,26 @@ public class SpeedFile {
 			File file = new File(fileName);
 			FileWriter fileWriter = new FileWriter(file);
 			PrintWriter printWriter = new PrintWriter(fileWriter);
+			boolean firstRecord = true;
+			double leftDistance = 0.0;
+			double rightDistance = 0.0;
 			// First find max and min,
-			double maxLeft = -9999.0;
-			double minLeft = 9999.0;
-			double maxRight = -9999.0;
-			double minRight = 9999.0;
 			for (SpeedRecord speedObj : speeds) {
 				double [] dist = speedObj.getDistance();
-				if (dist[0] > maxLeft || (dist[0] < 0.0 && Math.abs(dist[0]) > maxLeft)) 	maxLeft = dist[0];
-				if (dist[0] < minLeft || (dist[0] < 0.0 && Math.abs(dist[0]) < minLeft))	minLeft = dist[0];
-				if (dist[1] > maxRight || (dist[1] < 0.0 && Math.abs(dist[1]) > maxRight)) maxRight = dist[1];
-				if (dist[1] < minRight || (dist[1] < 0.0 && Math.abs(dist[1]) < minRight))	minRight = dist[1];
-			}
-			double leftRange = maxLeft+minLeft;
-			double rightRange = maxRight+minRight;
-			for (SpeedRecord speedObj : speeds) {
-				double [] dist = speedObj.getDistance();
-				speedObj.setDistance((dist[0]*-2.0)+leftRange*2, (dist[1]*-2.0)+rightRange*2.0);
+				double [] velocity = speedObj.getVelocity();
+				if (firstRecord) {
+					firstRecord = false;
+					leftDistance = dist[0];
+					rightDistance = dist[1];
+					RioLogger.log("starting distances are " + leftDistance + ", " + rightDistance);
+				}
+				double newLeftDistance = dist[0] - leftDistance;
+				double newRightDistance = dist[1] - rightDistance;
+//				newRightDistance *= - 1.0;
+//				double newRightVelocity = velocity[1] * -1.0;
+				double newRightVelocity = velocity[1];
+				speedObj.setVelocity(velocity[0],newRightVelocity);
+				speedObj.setDistance(newLeftDistance, newRightDistance);
 				printWriter.println(speedObj.toString());
 			}
 			printWriter.println(eof.toString());

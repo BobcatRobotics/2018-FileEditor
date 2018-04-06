@@ -39,22 +39,27 @@ import org.eclipse.swt.widgets.TableItem;
 public class FileEditor {
 
 	protected Shell shlFileEditor;
-	private Composite content = null;  // The current layout (SWT or FX)
-	private Composite speedContent;
-	private ScrolledComposite cntPnl = null; // Panel to house current layout
-	private ScrolledComposite speedPnl;
-	
-	private String fileName = "center2left.speeds.txt";
-	private String cmdFileName = "center2left.txt";
+	private String fileName = "right2scale.speeds.txt";
+	private String cmdFileName = "right2scale.txt";
+	private boolean convertGrayHill = true;
+	private boolean direction = true;
+	private boolean isSpeedFile = true;
+
+	// SpeedFile Components
+	private Composite speedContent = null;
+	private ScrolledComposite speedPnl = null;
 	private final JChartManager chartMgr = new JChartManager(fileName);
 	private final JFreeChart fileGraph = chartMgr.initChart();
-	private final CmdFileManager cmdMgr = new CmdFileManager(cmdFileName);
 	private ChartComposite displayGraph = null;
 	private Label statusBar = null;
 	private Text fileList = null;
-	private boolean convertGrayHill = true;
-	private Table cmdData;
 	
+	// Chart File Components
+	private final CmdFileManager cmdMgr = new CmdFileManager(cmdFileName);
+	private Table cmdData;
+	private Composite cmdContent = null;
+	private ScrolledComposite cmdPnl = null; 
+
 	//private JavaFXManager fxMgr = null;
 	//private FXCanvas fileAnimator = null;
 
@@ -79,10 +84,10 @@ public class FileEditor {
 	public void open() {
 		Display display = Display.getDefault();
 		createContents();
-		//addUIElements(isChartMode,false);
-		//refreshUILayout(false,false);
+		positionUIElements();
+		refreshUIData();
+		updateUILayout();
 		shlFileEditor.open();
-		shlFileEditor.layout();
 		while (!shlFileEditor.isDisposed()) {
 			if (!display.readAndDispatch()) {
 				display.sleep();
@@ -98,8 +103,6 @@ public class FileEditor {
 		shlFileEditor = new Shell(); //SWT.NO_REDRAW_RESIZE, SHELL_TRIM (CLOSE|TITLE|MIN|MAX|RESIZE)
 		shlFileEditor.setSize(1024, 768);
 		shlFileEditor.setText("File Editor - " + getFileFirstName());
-		
-		addUIElements(true, false);
 	}
 	
 	private GridLayout getLayout() {
@@ -110,112 +113,16 @@ public class FileEditor {
 		return layout;
 	}
 	
-	private void addUIElements(boolean isChartMode,boolean isAnimation) {
-		// Chart or FXCanvas (Either the chart  or FXCanvas will be visible)
-		// Chart is used to display 2D Charts of the data. FXCanvas is used to animate the Robot path
+	private void positionUIElements() {
+		// Chart is used to display 2D Charts of the data. 
+		// CMDFileEdit is used to display CmdFile in a table
 		//
-		// Chart or CmdFileEditor
+		// Chart (isChartMode == true) or CmdFileEditor (isChartMode == false)
 		shlFileEditor.setLayout(getLayout());
-		shlFileEditor.setMenuBar(buildMenu(isChartMode));
-
-		if (!isChartMode) {
-			// Scrolled Composite does not use a layout
-			ScrolledComposite cmdPnl = new ScrolledComposite(shlFileEditor, SWT.BORDER);
-			
-			// Create a composite, layout controls
-			Composite cmdContent = new Composite(cmdPnl, SWT.NONE);
-			cmdContent.setSize(new Point(988, 672));
-			
-			cmdData = new Table(cmdContent, /* SWT.FULL_SELECTION |*/ SWT.V_SCROLL);
-			cmdData.setBounds(0, 0, 982, 670);
-			cmdData.setHeaderVisible(true);
-			cmdData.setLinesVisible(true);
-			GridData gLayout = new GridData(SWT.FILL, SWT.FILL, false, true);
-			cmdData.setLayoutData(gLayout);
-			
-			TableColumn tblclmnNbr = new TableColumn(cmdData, SWT.BORDER);
-			tblclmnNbr.setWidth(75);
-			tblclmnNbr.setText("#");
-			
-			TableColumn tblclmnCmd = new TableColumn(cmdData, SWT.BORDER);
-			tblclmnCmd.setWidth(200);
-			tblclmnCmd.setText("Command Record");
-			
-			TableColumn tblclmnDrive = new TableColumn(cmdData, SWT.BORDER);
-			tblclmnDrive.setResizable(false);
-			tblclmnDrive.setWidth(165);
-			tblclmnDrive.setText("Drive Train");
-			
-			TableColumn tblclmnElevator = new TableColumn(cmdData, SWT.BORDER);
-			tblclmnElevator.setWidth(85);
-			tblclmnElevator.setText("Elevator");
-			
-			TableColumn tblclmnCubeArms = new TableColumn(cmdData, SWT.BORDER);
-			tblclmnCubeArms.setWidth(100);
-			tblclmnCubeArms.setText("Arms");
-			
-			TableColumn tblclmnCubeSpin = new TableColumn(cmdData, SWT.BORDER);
-			tblclmnCubeSpin.setWidth(100);
-			tblclmnCubeSpin.setText("Spinners");
-			
-			TableColumn tblclmnFourBar = new TableColumn(cmdData, SWT.BORDER);
-			tblclmnFourBar.setWidth(100);
-			tblclmnFourBar.setText("Four Bar");
-			cmdPnl.setContent(cmdContent);
-			cmdPnl.setMinSize(cmdContent.computeSize(SWT.DEFAULT, SWT.DEFAULT));
-			cmdPnl.setMinSize(new Point(988, 672));
-			
-			// Add Data to the Table
-			// Keep track of the row of each command
-//			int driveCnt = 0;
-//			int elevCnt = 0;
-//			int cubeArmCnt = 0;
-//			int cubeSpinnerCnt = 0;
-//			int fourBarCnt = 0;
-	
-			Integer cmdCount = 0;
-			List<CommandRecord> cmdFileData = cmdMgr.readCmdFile();
-			for (CommandRecord cmd : cmdFileData) {
-				if (Commands.EOF.equals(cmd.getID()))
-					break;
-				TableItem item = new TableItem(cmdData, SWT.NONE);
-				item.setText(0,cmdCount.toString());
-				item.setText(1,cmd.toString().trim().replaceAll("\\s+", " "));
-				cmdCount++;
-				String doublePower = String.format("%8.5f %8.5f", cmd.getSpeed()[0],cmd.getSpeed()[1]);
-				String singlePower = String.format("%8.5f", cmd.getSpeed()[0]);
-				switch (cmd.getID()) {
-				case DRIVE_CHAIN:
-					item.setText(2, doublePower);
-					//driveCnt++;
-					break;
-	
-				case ELEVATOR:
-					item.setText(3, singlePower);
-					break;
-					
-				case CUBE_ARMS:
-					item.setText(4, cmd.getState() ? "OPEN" : "CLOSE");
-					break;
-	
-				case CUBE_SPINNERS:
-					item.setText(5, cmd.getState() ? "FWD" : "REV");
-					break;
-	
-				case FOURBAR:
-					item.setText(6, cmd.getState() ? "UP" : "DOWN");
-					break;
-	
-				default:
-					break;
-	
-				}
-			}
-			for (int col = 0; col < 7; col++) {
-				cmdData.getColumn(col).pack();
-			}
-		}
-		if (isChartMode) {		
+		shlFileEditor.setMenuBar(buildMenu());
+		shlFileEditor.setText("File Editor - " + getFileFirstName());
+		
+		if (isSpeedFile) {		
 			// Scrolled Composite does not use a layout
 			Point pcomp = new Point(988,672);
 			speedPnl = new ScrolledComposite(shlFileEditor, SWT.BORDER );
@@ -262,20 +169,61 @@ public class FileEditor {
 			
 			// The List
 			fileList = new Text(speedContent, /*SWT.BORDER |*/ SWT.V_SCROLL | SWT.MULTI);
-			List<String> records = chartMgr.listRecords(); 
-			for (String rec : records) {
-				fileList.append(rec + "\n");
-			}
 			fileList.setLayoutData(new GridData(plist.x,plist.y));
 			fileList.setSize(plist.x,plist.y);
 			fileList.setBounds(yPos,xPos,plist.x,plist.y);
 			RioLogger.debugLog("List size is " + fileList.getSize());
 			RioLogger.debugLog("List computesize is " + fileList.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 		}
+
+		if (!isSpeedFile) {
+			// Scrolled Composite does not use a layout
+			cmdPnl = new ScrolledComposite(shlFileEditor, SWT.BORDER);
+			
+			// Create a composite, layout controls
+			cmdContent = new Composite(cmdPnl, SWT.NONE);
+			cmdContent.setSize(new Point(988, 672));
+			
+			cmdData = new Table(cmdContent, /* SWT.FULL_SELECTION |*/ SWT.V_SCROLL);
+			cmdData.setBounds(0, 0, 982, 670);
+			cmdData.setHeaderVisible(true);
+			cmdData.setLinesVisible(true);
+			GridData gLayout = new GridData(SWT.FILL, SWT.FILL, false, true);
+			cmdData.setLayoutData(gLayout);
+			
+			TableColumn tblclmnNbr = new TableColumn(cmdData, SWT.BORDER);
+			tblclmnNbr.setWidth(75);
+			tblclmnNbr.setText("#");
+			
+			TableColumn tblclmnCmd = new TableColumn(cmdData, SWT.BORDER);
+			tblclmnCmd.setWidth(200);
+			tblclmnCmd.setText("Command Record");
+			
+			TableColumn tblclmnDrive = new TableColumn(cmdData, SWT.BORDER);
+			tblclmnDrive.setResizable(false);
+			tblclmnDrive.setWidth(165);
+			tblclmnDrive.setText("Drive Train");
+			
+			TableColumn tblclmnElevator = new TableColumn(cmdData, SWT.BORDER);
+			tblclmnElevator.setWidth(85);
+			tblclmnElevator.setText("Elevator");
+			
+			TableColumn tblclmnCubeArms = new TableColumn(cmdData, SWT.BORDER);
+			tblclmnCubeArms.setWidth(100);
+			tblclmnCubeArms.setText("Arms");
+			
+			TableColumn tblclmnCubeSpin = new TableColumn(cmdData, SWT.BORDER);
+			tblclmnCubeSpin.setWidth(100);
+			tblclmnCubeSpin.setText("Spinners");
+			
+			TableColumn tblclmnFourBar = new TableColumn(cmdData, SWT.BORDER);
+			tblclmnFourBar.setWidth(100);
+			tblclmnFourBar.setText("Four Bar");
+		}
 	}
 	
 	
-	private Menu buildMenu(boolean isChartMode) {
+	private Menu buildMenu() {
 		Menu menuBar = new Menu(shlFileEditor, SWT.BAR | SWT.BORDER);
 		
 		// File Menu
@@ -287,16 +235,6 @@ public class FileEditor {
 		openItem.setText("&Open");
 		MenuItem exitItem = new MenuItem(fileMenu, SWT.PUSH);
 		exitItem.setText("&Exit");
-
-		// View Menu
-		MenuItem topViewMenu = new MenuItem(menuBar, SWT.CASCADE);
-		topViewMenu.setText("&View");
-		Menu viewMenu = new Menu(shlFileEditor, SWT.DROP_DOWN);
-		topViewMenu.setMenu(viewMenu);
-		MenuItem speedItem = new MenuItem(viewMenu, SWT.PUSH);
-		speedItem.setText("&Speed File");
-		MenuItem cmdItem = new MenuItem(viewMenu, SWT.PUSH);
-		cmdItem.setText("&Command File");
 
 		// Add Selection Handlers
 		openItem.addSelectionListener(new SelectionAdapter() {
@@ -313,8 +251,18 @@ public class FileEditor {
 					String filename = pth.getFileName().toString();
 					RioLogger.log(filename);
 					fileName = filename;
-					refreshUIFileComponents();
-					refreshUILayout(true, false);
+					// Determine if this is a speed file or a CMD file
+					String [] splitFileName = filename.split("\\.");
+					if ("speeds".equals(splitFileName[1])) {
+						RioLogger.debugLog("opening speeds file");
+						isSpeedFile = true;
+					} else {
+						RioLogger.debugLog("opening CMD file");
+						isSpeedFile = false;
+					}
+					positionUIElements();
+					refreshUIData(); 
+					updateUILayout();
 				}
 			}
 		});
@@ -325,23 +273,75 @@ public class FileEditor {
 				System.exit(0);
 			}
 		});
-		speedItem.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				addUIElements(true,false);
-				refreshUILayout(false,false);
+		// Edit Menu
+		MenuItem topEditorMenu = new MenuItem(menuBar, SWT.CASCADE | SWT.NO_RADIO_GROUP);
+		topEditorMenu.setText("&Edit");
+		Menu editMenu = new Menu(shlFileEditor, SWT.DROP_DOWN);
+		topEditorMenu.setMenu(editMenu);
+		if (!isSpeedFile) {
+		    MenuItem grayhillItem = new MenuItem(editMenu, SWT.CHECK);
+		    grayhillItem.setText("Convert GrayHill Values");
+		    grayhillItem.setSelection(true);
+			grayhillItem.addSelectionListener(new SelectionAdapter() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					boolean state = grayhillItem.getSelection();
+					convertGrayHill = !state;
+					grayhillItem.setEnabled(convertGrayHill);
+					if (convertGrayHill) {
+						boolean updated = chartMgr.convertSpeedFile();
+						if (updated) {
+							MessageDialog.openInformation(shlFileEditor, "Info", fileName + " - GrayHill Adjusted. File is backed up.");
+							//refreshUIFileComponents();
+							refreshUIData(); // XXXXXXXX
+							updateUILayout();
 
-			}
-		});
-		cmdItem.addSelectionListener(new SelectionAdapter() {
+						}
+					}
+				}
+			});	
+		}
+		MenuItem directionItem = new MenuItem(editMenu, SWT.CHECK);
+		directionItem.setText("&Direction");
+		directionItem.setSelection(direction);
+		MenuItem deleteItem = new MenuItem(editMenu, SWT.PUSH);
+		deleteItem.setText("&Delete Rows");
+		MenuItem addItem = new MenuItem(editMenu, SWT.PUSH);
+		addItem.setText("&Add Rows");
+		
+		directionItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				addUIElements(false,false);
-				refreshUILayout(false,false);
+				boolean state = directionItem.getSelection();
+				direction = !state;
+				directionItem.setEnabled(direction);
+				chartMgr.setDirection(direction);
 			}
-		});
-		
-		if (isChartMode) {
+		});	
+		deleteItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				InputDialog delDialog = new InputDialog(shlFileEditor);
+				delDialog.setRecordCount(chartMgr.getTotalRecords());
+				String [] inputs = delDialog.open();
+				// Validate inputs
+				if (delDialog.validInput()) {
+					if (updateFile(true,inputs)) {
+						refreshUIData();
+						updateUILayout();
+					}
+				}
+			}
+		});	
+		addItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				//updateGraph(GraphElements.ROBOTPATH);
+				//refreshUILayout(true,true);
+			}
+		});	
+
+		if (!isSpeedFile) {
 			// Data Menu
 			MenuItem topDataMenu = new MenuItem(menuBar, SWT.CASCADE);
 			topDataMenu.setText("&Data");
@@ -382,114 +382,101 @@ public class FileEditor {
 					updateGraph(GraphElements.ROBOTPATH);
 				}
 			});	
-
-			// Edit Menu
-			MenuItem topEditorMenu = new MenuItem(menuBar, SWT.CASCADE | SWT.NO_RADIO_GROUP);
-			topEditorMenu.setText("&Edit");
-			Menu editMenu = new Menu(shlFileEditor, SWT.DROP_DOWN);
-			topEditorMenu.setMenu(editMenu);
-		    MenuItem grayhillItem = new MenuItem(editMenu, SWT.CHECK);
-		    grayhillItem.setText("Convert GrayHill Values");
-		    grayhillItem.setSelection(true);
-			MenuItem deleteItem = new MenuItem(editMenu, SWT.PUSH);
-			deleteItem.setText("&Delete Rows");
-			MenuItem addItem = new MenuItem(editMenu, SWT.PUSH);
-			addItem.setText("&Add Rows");
-			
-			grayhillItem.addSelectionListener(new SelectionAdapter() {
-				@Override
-				public void widgetSelected(SelectionEvent e) {
-					boolean state = grayhillItem.getSelection();
-					convertGrayHill = !state;
-					grayhillItem.setEnabled(convertGrayHill);
-					if (convertGrayHill) {
-						boolean updated = chartMgr.convertSpeedFile();
-						if (updated) {
-							MessageDialog.openInformation(shlFileEditor, "Info", fileName + " - GrayHill Adjusted. File is backed up.");
-							refreshUIFileComponents();
-							refreshUILayout(true, false);
-
-						}
-					}
-				}
-			});	
-			
-			deleteItem.addSelectionListener(new SelectionAdapter() {
-				@Override
-				public void widgetSelected(SelectionEvent e) {
-					InputDialog delDialog = new InputDialog(shlFileEditor);
-					delDialog.setRecordCount(chartMgr.getTotalRecords());
-					String [] inputs = delDialog.open();
-					// Validate inputs
-					if (delDialog.validInput()) {
-						if (updateFile(true,inputs)) {
-							refreshUIFileComponents();
-							refreshUILayout(true, false);
-						}
-					}
-				}
-			});	
-			
-			addItem.addSelectionListener(new SelectionAdapter() {
-				@Override
-				public void widgetSelected(SelectionEvent e) {
-					//updateGraph(GraphElements.ROBOTPATH);
-					//refreshUILayout(true,true);
-				}
-			});	
 		}
-	
 		return menuBar;
 	}
 
 	private boolean updateFile(boolean delete,String[] inputs) {
-		// TODO Auto-generated method stub
 		RioLogger.debugLog("From Field: " + inputs[0]);
 		RioLogger.debugLog("To Field: " + inputs[1]);
 		return chartMgr.updateSpeedFile(delete,inputs[0],inputs[1]);
 	}
+	
+	private void updateGraph(GraphElements gElem) {
+		chartMgr.setDirection(direction);
+		displayGraph.setChart(chartMgr.updateChart(gElem));
+		refreshUISpeedData();
+		updateUILayout();
+		//displayGraph.forceRedraw();
+		//shlFileEditor.redraw();
+	}
 
-	private void refreshUILayout(boolean redraw,boolean animation) {
-		// Chart or FXCanvas (Either the chart  or FXCanvas will be visible)
+	private void updateUILayout() {
 		// Chart is used to display 2D Charts of the data
-		// FXCanvas is used to animate the Robot path. 
-		//shlFileEditor.setParent(currentParent);
-		
-		if (animation) {
-			//fxMgr.animate();
-			//RioLogger.debugLog("FX Animation panel size is " + fileAnimator.getSize());
-		}
-		
-		if (redraw) {
+		// cmdData is used to display CMD File
+		if (isSpeedFile) {
 			Point pcomp = new Point(988,672);
 			speedPnl.setBounds(0, 0, pcomp.y, pcomp.x);
 			speedPnl.setMinSize(pcomp);
 			speedContent.setSize(pcomp);
 			speedContent.redraw();
-			shlFileEditor.layout();
-			shlFileEditor.pack();
+		} else {
+			cmdPnl.setContent(cmdContent);
+			cmdPnl.setMinSize(cmdContent.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+			cmdPnl.setMinSize(new Point(988, 672));
+		}
+		shlFileEditor.layout();
+		shlFileEditor.pack();
+	}
+
+	private void refreshUIChartData() { 
+		for (int col = 0; col < 7; col++) {
+			cmdData.getColumn(col).pack();
 		}
 	}
 
-	private void refreshUIFileComponents( ) {
-		// Update Program Title, label
-		shlFileEditor.setText("File Editor - " + fileName);
-		chartMgr.setFileName(fileName);
-		displayGraph.setChart(chartMgr.initChart());
-		statusBar.setText(" " + fileName + " | Records - " + chartMgr.getTotalRecords());
-		fileList.selectAll();
-		fileList.clearSelection();
+	private void refreshUISpeedData() {
 		List<String> records = chartMgr.listRecords(); 
 		for (String rec : records) {
 			fileList.append(rec + "\n");
 		}
 	}
 	
-	private void updateGraph(GraphElements gElem) {
-		displayGraph.setChart(chartMgr.updateChart(gElem));
-		refreshUILayout(true, false);
-		//displayGraph.forceRedraw();
-		//shlFileEditor.redraw();
+	private void refreshUIData() {
+		// Update Data
+		if (isSpeedFile) {
+			chartMgr.setFileName(fileName);
+			chartMgr.setDirection(direction);
+			displayGraph.setChart(chartMgr.initChart());
+			statusBar.setText(" " + fileName + " | Records - " + chartMgr.getTotalRecords());
+			fileList.selectAll();
+			fileList.clearSelection();
+			refreshUISpeedData();
+		} else {
+			Integer cmdCount = 0;
+			List<CommandRecord> cmdFileData = cmdMgr.readCmdFile();
+			for (CommandRecord cmd : cmdFileData) {
+				if (Commands.EOF.equals(cmd.getID()))
+					break;
+				TableItem item = new TableItem(cmdData, SWT.NONE);
+				item.setText(0, cmdCount.toString());
+				item.setText(1, cmd.toString().trim().replaceAll("\\s+", " "));
+				cmdCount++;
+				String doublePower = String.format("%8.5f %8.5f", cmd.getSpeed()[0], cmd.getSpeed()[1]);
+				String singlePower = String.format("%8.5f", cmd.getSpeed()[0]);
+				switch (cmd.getID()) {
+				case DRIVE_CHAIN:
+					item.setText(2, doublePower);
+					// driveCnt++;
+					break;
+				case ELEVATOR:
+					item.setText(3, singlePower);
+					break;
+				case CUBE_ARMS:
+					item.setText(4, cmd.getState() ? "OPEN" : "CLOSE");
+					break;
+				case CUBE_SPINNERS:
+					item.setText(5, cmd.getState() ? "FWD" : "REV");
+					break;
+				case FOURBAR:
+					item.setText(6, cmd.getState() ? "UP" : "DOWN");
+					break;
+				default:
+					break;
+				}
+			}
+			refreshUIChartData();
+		}
 	}
 	
 	private void drawBorder(Control cont){
@@ -499,14 +486,12 @@ public class FileEditor {
     		@Override
             public void paintControl(PaintEvent e){
                 GC gc = e.gc;
-                Color color = new Color(Display.getCurrent(), 0, 0 ,255); // BLUE
-                //Color color = new Color(Display.getCurrent(), 128, 128, 128); // BLACK
+                //Color color = new Color(Display.getCurrent(), 0, 0 ,255); // BLUE
+                Color color = new Color(Display.getCurrent(), 128, 128, 128); // BLACK
                 gc.setBackground(color);
                 Rectangle rect = control.getBounds();
-                //RioLogger.debugLog("drawBorder rect bounds are " + rect);
                 Rectangle rect1 = new Rectangle(rect.x-2, rect.y - 2,
                         rect.width+4, rect.height+4);
-                //RioLogger.debugLog("drawBorder rect bounds are " + rect1);
                 gc.setLineStyle(SWT.LINE_SOLID);
                 //gc.setLineWidth(2);
                 gc.fillRectangle(rect1);
