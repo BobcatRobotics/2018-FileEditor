@@ -259,7 +259,7 @@ public class JChartManager {
 			data = getChartData(gElem);
 		}
 		String yLegend = null;
-		String xLegend = "Time";
+		String xLegend = "Time        Blue->Left   Red->Right";
 		switch (gElem) {
 		case POWER:
 			yLegend = "Power";

@@ -137,12 +137,14 @@ public class SpeedFile {
 					rightDistance = dist[1];
 					RioLogger.log("starting distances are " + leftDistance + ", " + rightDistance);
 				}
-				double newLeftDistance = dist[0] - leftDistance;
-				double newRightDistance = dist[1] - rightDistance;
-//				newRightDistance *= - 1.0;
-//				double newRightVelocity = velocity[1] * -1.0;
-				double newRightVelocity = velocity[1];
-				speedObj.setVelocity(velocity[0],newRightVelocity);
+//				double newLeftDistance = dist[0] - leftDistance;
+//				double newRightDistance = dist[1] - rightDistance;
+				double newLeftDistance = dist[0];
+				double newRightDistance = dist[1];
+						// newRightDistance *= - 1.0;
+				double newRightVelocity = velocity[1] * -1.0;
+				//double newRightVelocity = velocity[1];
+				speedObj.setVelocity(velocity[0], newRightVelocity);
 				speedObj.setDistance(newLeftDistance, newRightDistance);
 				printWriter.println(speedObj.toString());
 			}
@@ -173,11 +175,18 @@ public class SpeedFile {
 			RioLogger.debugLog(err);
 			return false;
 		}
-		   
-		// TODO :: Check delete flag
-		// TODO :: Probably want to break this up for add vs delete   
-		// Now that the file was backed up
-		// For delete figure out total time being deleted, subtract from remaining records.
+
+		if (delete) {
+			updated = deleteUpdate(fromRec,toRec);
+		} else {
+			updated = addUpdate(fromRec,toRec);
+		}
+
+		return updated;
+	}
+	
+	private boolean deleteUpdate(int fromRec, int toRec) {
+		boolean updated = true;
 		double totalTimeFrom = 0.0;
 		double totalTimeTo = 0.0;
 		boolean deleteZeroRec = (fromRec == 0);
@@ -240,6 +249,11 @@ public class SpeedFile {
 		return updated;
 	}
 	
+	private boolean addUpdate(int fromRec, int toRec) {
+		boolean updated = true;
+		return updated;
+	}
+
 	public SpeedRecord getRawData(int index) {
 		SpeedRecord speedObj = eof;
 		if (index < maxCtr) {

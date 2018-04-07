@@ -77,10 +77,10 @@ public class SpeedRecord {
 		row[0] = leftDistance;
 		row[1] = rightDistance;
 		// If distances are negative it means encoders are reversed
-		if (row[0] < 0.0)
-			row[0] *= -1.0;
-		if (row[1] < 0.0)
-			row[1] *= -1.0;
+//		if (row[0] < 0.0)
+//			row[0] *= -1.0;
+//		if (row[1] < 0.0)
+//			row[1] *= -1.0;
 		return row;
 	}
 

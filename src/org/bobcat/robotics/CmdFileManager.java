@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.usfirst.frc.team177.lib.CommandFile;
 import org.usfirst.frc.team177.lib.CommandRecord;
+import org.usfirst.frc.team177.lib.Commands;
 
 public class CmdFileManager {
 	private String fileName = null;
@@ -35,16 +36,21 @@ public class CmdFileManager {
 	public void setFileName(String fileName) {
 		this.fileName = fileName;
 	}
-	
+
 	public List<CommandRecord> readCmdFile() {
 		cmdFile = new CommandFile(fileName);
 		cmdFile.readRecordingFile();
-		nbrCommands = cmdFile.getNbrOfCommands();
 		cmdData = new ArrayList<CommandRecord>(nbrCommands);
-		for (int rec = 0; rec < nbrCommands; rec++) {
-			CommandRecord cmdRec = cmdFile.getRawData(rec);
+		int recCtr = 0;
+		while ( true) {
+			CommandRecord cmdRec = cmdFile.getRawData(recCtr);
+			if (Commands.EOF.equals(cmdRec.getID())) {
+				break;
+			}
 			cmdData.add(cmdRec);
+			recCtr++;
 		}
+		nbrCommands = recCtr;
 		return cmdData;
 	}
 

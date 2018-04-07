@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -86,6 +87,21 @@ public class CommandFile {
 		} catch (FileNotFoundException e) {
 			RioLogger.errorLog("CommandFile.readRecording() error " + e.getMessage());
 		}
+	}
+
+	public boolean updateCMDFile(String backupFileName, boolean delete, int fromRec, int toRec) {
+		RioLogger.debugLog("fromRec - toRec " + fromRec + ", " + toRec);
+		boolean updated = true;
+		File source = new File(fileName);
+		File dest = new File(path + backupFileName);
+		try {
+			Files.copy(source.toPath(), dest.toPath());
+		} catch (IOException e) {
+			String err = "SpeedFile.updateCMDFile() error " + e;
+			RioLogger.debugLog(err);
+			return false;
+		}
+		return updated;
 	}
 
 	public CommandRecord getRawData(int index) {
