@@ -31,6 +31,10 @@ public class CommandRecord {
 		totalTime = new Double(result[1]);
 	}
 
+	public void updateTime(double newTotalTime) {
+		totalTime = newTotalTime;
+	}
+	
 	public Commands getID() {
 		return id;
 	}

@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+import org.bobcat.robotics.EditData.Mode;
+
 //import edu.wpi.first.wpilibj.DriverStation;
 //import edu.wpi.first.wpilibj.Timer;
 
@@ -163,7 +165,7 @@ public class SpeedFile {
 		return updated;
 	}
 	
-	public boolean updateRecordingFile(String backupFileName,boolean delete,int fromRec,int toRec) {
+	public boolean updateRecordingFile(String backupFileName,Mode mode,boolean isPower,int fromRec,int toRec,double leftValue,double rightValue) {
 		RioLogger.debugLog("fromRec - toRec " + fromRec + ", " + toRec);
 		boolean updated = true;
 		File source = new File(fileName);
@@ -176,15 +178,49 @@ public class SpeedFile {
 			return false;
 		}
 
-		if (delete) {
+		if (Mode.DELETE.equals(mode)) {
 			updated = deleteUpdate(fromRec,toRec);
-		} else {
+		} else if (Mode.ADD.equals(mode)) {
 			updated = addUpdate(fromRec,toRec);
+		} else if (Mode.CHANGE.equals(mode)) {
+			updated = chgUpdate(isPower,fromRec,toRec,leftValue,rightValue);
 		}
-
 		return updated;
 	}
 	
+	private boolean chgUpdate(boolean isPower,int fromRec, int toRec, double leftVal, double rightVal) {
+		boolean updated = false;
+		int recCtr = 0;
+		try {
+			File file = new File(fileName);
+			FileWriter fileWriter = new FileWriter(file);
+			PrintWriter printWriter = new PrintWriter(fileWriter);
+			for (SpeedRecord speedObj : speeds) {
+				if (recCtr >= fromRec && recCtr <= toRec) {
+					if (isPower)
+						speedObj.setPower(leftVal, rightVal);
+					else
+						speedObj.setVelocity(leftVal, rightVal);
+				} 
+				printWriter.println(speedObj.toString());
+				recCtr++;
+			}
+			printWriter.println(eof.toString());
+			printWriter.flush();
+			printWriter.close();
+			fileWriter.close();
+			updated = true;
+		} catch (IOException e) {
+			String err = "SpeedFile.chgUpdate() error " + e.getMessage();
+			//DriverStation.reportError(err, false);
+			//RioLogger.log(err);
+			RioLogger.debugLog(err);
+			updated = false;
+		}
+		
+		return updated;	
+	}
+
 	private boolean deleteUpdate(int fromRec, int toRec) {
 		boolean updated = true;
 		double totalTimeFrom = 0.0;

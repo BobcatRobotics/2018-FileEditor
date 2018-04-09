@@ -1,13 +1,18 @@
 package org.bobcat.robotics;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
+import org.bobcat.robotics.EditData.Mode;
 import org.usfirst.frc.team177.lib.CommandFile;
 import org.usfirst.frc.team177.lib.CommandRecord;
 import org.usfirst.frc.team177.lib.Commands;
 
 public class CmdFileManager {
+	private static final String dateFmt = "'.'yyyy-MM-dd_hh.mm.ss'.txt'";
+
 	private String fileName = null;
 	private int nbrCommands = 0;
 	private CommandFile cmdFile;
@@ -53,5 +58,14 @@ public class CmdFileManager {
 		nbrCommands = recCtr;
 		return cmdData;
 	}
+	
+	public boolean updateCmdFile(Mode mode, String inputFrom, String inputTo,String leftValue,String rightValue) {
+		String[] namesplit = fileName.split("\\.");
+		String datePath = new SimpleDateFormat(dateFmt).format(new Date());
+		String archiveCmdFileName = namesplit[0]  + datePath;
+		return cmdFile.updateCMDFile(archiveCmdFileName, mode, new Integer(inputFrom),
+				new Integer(inputTo),new Double(leftValue),new Double(rightValue));
+	}
+
 
 }

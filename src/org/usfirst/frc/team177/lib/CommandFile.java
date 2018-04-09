@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+import org.bobcat.robotics.EditData.Mode;
+
 //import edu.wpi.first.wpilibj.Timer;
 
 public class CommandFile {
@@ -18,6 +20,7 @@ public class CommandFile {
 	private static List<CommandRecord> commands = new ArrayList<CommandRecord>();
 	private static CommandRecord eof = new CommandRecord().endOfFile();
 	private String fileName;
+	private int[][] fileLinks = null;
 
 	private int passCtr = 0;
 	private int maxCtr = 0;
@@ -84,12 +87,26 @@ public class CommandFile {
 			maxCtr = passCtr;
 			// File was read, now prime the passCounter for reading back each row
 			passCtr = 0;
+			// File was read, build the array that links Speed Records to CMD Records
+			fileLinks = new int[maxCtr][maxCtr];
+			int speedRec = 0;
+			int cmdRec = 0;
+			int fileLinkCtr = 0;
+			for (CommandRecord cmd : commands) {
+				fileLinks[fileLinkCtr][0] = speedRec;
+				fileLinks[fileLinkCtr][1] = cmdRec;
+				if(Commands.DRIVE_CHAIN.equals(cmd.getID())) {
+					speedRec++;
+				}
+				cmdRec++;
+				fileLinkCtr++;
+			}
 		} catch (FileNotFoundException e) {
 			RioLogger.errorLog("CommandFile.readRecording() error " + e.getMessage());
 		}
 	}
 
-	public boolean updateCMDFile(String backupFileName, boolean delete, int fromRec, int toRec) {
+	public boolean updateCMDFile(String backupFileName, Mode mode, int fromRec, int toRec,double leftValue,double rightValue) {
 		RioLogger.debugLog("fromRec - toRec " + fromRec + ", " + toRec);
 		boolean updated = true;
 		File source = new File(fileName);
@@ -97,13 +114,117 @@ public class CommandFile {
 		try {
 			Files.copy(source.toPath(), dest.toPath());
 		} catch (IOException e) {
-			String err = "SpeedFile.updateCMDFile() error " + e;
+			String err = "CommandFile.updateCMDFile() error " + e;
 			RioLogger.debugLog(err);
 			return false;
+		} 
+		if (Mode.DELETE.equals(mode)) {
+			updated = deleteCMDFile(fromRec,toRec);
+		} else if (Mode.ADD.equals(mode)) {
+			// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+		} else if (Mode.CHANGE.equals(mode)) {
+			updated = changeCMDFile(fromRec,toRec,leftValue,rightValue);
 		}
 		return updated;
 	}
 
+	private boolean deleteCMDFile(int fromRec, int toRec) {
+		double timeDeleted = ((toRec - fromRec) + 1) * 0.02; // nbrRecords * 20 millis
+		double prevCmdTime = 0.0;
+		boolean updated = true;
+		int actualFromRecord = 0;
+		int actualToRecord = 0;
+		//int driveRecordsCnt = 0; 
+		int recCnt = 0;
+		RioLogger.debugLog("CommandFile.deleteCMDFile() fromRec, toRec " + fromRec + " " + toRec );
+		for (int[] fLink : fileLinks) {
+			if(actualFromRecord == 0 && fLink[0] == fromRec)
+				actualFromRecord = fLink[1];
+			if(actualToRecord == 0 && fLink[0] == toRec)
+				actualToRecord = fLink[1];
+		}
+		RioLogger.debugLog("CommandFile.deleteCMDFile() actualFromRecord, actualToRecord " + actualFromRecord + " " + actualToRecord );
+		recCnt = 0;
+		try {
+			File file = new File(fileName);
+			FileWriter fileWriter = new FileWriter(file);
+			PrintWriter printWriter = new PrintWriter(fileWriter);
+			for (CommandRecord cmd : commands) {
+				if (Commands.EOF.equals(cmd.getID()))
+					break;
+	
+				if ((recCnt < actualFromRecord)  || (recCnt > actualToRecord)) {
+					if (recCnt > actualToRecord)
+						cmd.updateTime(cmd.getTotalTime() - timeDeleted);
+					printWriter.println(cmd.toString());
+				} else {
+					// Inside the Block
+					if (!Commands.DRIVE_CHAIN.equals(cmd.getID())) {
+						cmd.updateTime(prevCmdTime);
+						printWriter.println(cmd.toString());
+					}
+				}
+				if (recCnt == (actualFromRecord - 1)) {
+					prevCmdTime = cmd.getTotalTime();
+				}
+				recCnt++;
+			}
+			printWriter.println(eof.toString());
+			printWriter.flush();
+			printWriter.close();
+			fileWriter.close();
+		} catch (IOException e) {
+			String err = "CommandFile.deleteCMDFile() error " + e.getMessage();
+			//DriverStation.reportError(err, false);
+			//RioLogger.log(err);
+			RioLogger.debugLog(err);
+			updated = false;
+		}
+		
+		return updated;		
+	}
+
+	private boolean changeCMDFile(int fromRec, int toRec,double leftPower,double rightPower) {
+		boolean updated = true;
+		int actualFromRecord = 0;
+		int actualToRecord = 0;
+		int recCnt = 0;
+		RioLogger.debugLog("CommandFile.changeCMDFile() fromRec, toRec " + fromRec + " " + toRec );
+		for (int[] fLink : fileLinks) {
+			if(actualFromRecord == 0 && fLink[0] == fromRec)
+				actualFromRecord = fLink[1];
+			if(actualToRecord == 0 && fLink[0] == toRec)
+				actualToRecord = fLink[1];
+		}
+		RioLogger.debugLog("CommandFile.changeCMDFile() actualFromRecord, actualToRecord " + actualFromRecord + " " + actualToRecord );
+		recCnt = 0;
+		try {
+			File file = new File(fileName);
+			FileWriter fileWriter = new FileWriter(file);
+			PrintWriter printWriter = new PrintWriter(fileWriter);
+			for (CommandRecord cmd : commands) {
+				if (Commands.EOF.equals(cmd.getID()))
+					break;
+				if ((recCnt >= actualFromRecord)  && (recCnt <= actualToRecord)) {
+					cmd.setPower(leftPower, rightPower);
+				} 
+				printWriter.println(cmd.toString());
+				recCnt++;
+			}
+			printWriter.println(eof.toString());
+			printWriter.flush();
+			printWriter.close();
+			fileWriter.close();
+		} catch (IOException e) {
+			String err = "CommandFile.changeCMDFile() error " + e.getMessage();
+			//DriverStation.reportError(err, false);
+			//RioLogger.log(err);
+			RioLogger.debugLog(err);
+			updated = false;
+		}
+		
+		return updated;		
+	}
 	public CommandRecord getRawData(int index) {
 		CommandRecord cmd = eof;
 		if (index < maxCtr) {

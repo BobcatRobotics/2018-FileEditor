@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.bobcat.robotics.EditData.Mode;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.event.ChartChangeEvent;
@@ -290,12 +291,12 @@ public class JChartManager {
 		return recList;
 	}
 
-	public boolean updateSpeedFile(boolean delete, String inputFrom, String inputTo) {
+	public boolean updateSpeedFile(Mode mode, boolean isPower, String inputFrom, String inputTo,String leftValue,String rightValue) {
 		String[] namesplit = fileName.split("\\.");
 		String datePath = new SimpleDateFormat(dateFmt).format(new Date());
 		String archiveSpeedFileName = namesplit[0] + ".speeds." + datePath;
-		return speedFile.updateRecordingFile(archiveSpeedFileName, delete, new Integer(inputFrom),
-				new Integer(inputTo));
+		return speedFile.updateRecordingFile(archiveSpeedFileName, mode, isPower, new Integer(inputFrom),
+				new Integer(inputTo),new Double(leftValue),new Double(rightValue));
 	}
 
 	// TODO:: Remove when competition GrayHills are in sync,

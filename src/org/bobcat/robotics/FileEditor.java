@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 
+import org.bobcat.robotics.EditData.Mode;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.PaintEvent;
@@ -109,7 +110,8 @@ public class FileEditor {
 		int yBorder = 2;
 		
 		// The Status Bar
-		Point pstatus = new Point(1022, 30);
+//		Point pstatus = new Point(1022, 30);
+		Point pstatus = new Point(772, 30);
 		statusBar = new Label(shlFileEditor, SWT.BORDER/* SWT.NONE */);
 		statusBar.setText(" " + fileName + " | Records - " + chartMgr.getTotalRecords());
 		statusBar.setLayoutData(new GridData(pstatus.x, pstatus.y));
@@ -124,7 +126,8 @@ public class FileEditor {
 		RioLogger.debugLog("(1) x, y is " + xPos + ", " + yPos);
 
 		// The Status Bar
-		Point pstatus2 = new Point(1022, 30);
+//		Point pstatus2 = new Point(1022, 30);
+		Point pstatus2 = new Point(772, 30);
 		statusBarCmd = new Label(shlFileEditor, SWT.BORDER/* SWT.NONE */);
 		statusBarCmd.setText(" " + cmdFileName + " | Command - " + cmdMgr.getTotalCommands());
 		statusBarCmd.setLayoutData(new GridData(pstatus2.x, pstatus2.y));
@@ -139,7 +142,8 @@ public class FileEditor {
 		RioLogger.debugLog("(1a) x, y is " + xPos + ", " + yPos);
 
 		// The Chart
-		Point pgraph = new Point(1022, 448);
+//		Point pgraph = new Point(1022, 448);
+		Point pgraph = new Point(772, 448);
 		displayGraph = new ChartComposite(shlFileEditor, SWT.BORDER/* SWT.NONE*/, fileGraph, true);
 		displayGraph.setDisplayToolTips(false);
 		displayGraph.setHorizontalAxisTrace(false);
@@ -154,7 +158,8 @@ public class FileEditor {
 		RioLogger.debugLog("(2) y, x is " + yPos + ", " + xPos);
 
 		// The CMD Chart
-		Point pTable = new Point(992, 672);
+//		Point pTable = new Point(992, 672);
+		Point pTable = new Point(742, 672);
 		cmdData = new Table(shlFileEditor, SWT.BORDER | SWT.FULL_SELECTION/* |SWT.CHECK */ | SWT.RESIZE | SWT.V_SCROLL);
 		cmdData.setBounds(xPos, yPos, pTable.x, pTable.y);
 		cmdData.setSize(pTable.x,pTable.y);
@@ -187,7 +192,8 @@ public class FileEditor {
 
 
 		// The List
-		Point plist = new Point(988, 286);
+//		Point plist = new Point(988, 286);
+		Point plist = new Point(738, 286);
 		fileList = new Text(shlFileEditor, SWT.BORDER | SWT.V_SCROLL | SWT.MULTI);
 		fileList.setLayoutData(new GridData(plist.x, plist.y));
 		fileList.setSize(plist.x, plist.y);
@@ -262,6 +268,43 @@ public class FileEditor {
 		topEditorMenu.setText("&Edit");
 		Menu editMenu = new Menu(shlFileEditor, SWT.DROP_DOWN);
 		topEditorMenu.setMenu(editMenu);
+		
+		MenuItem editItem = new MenuItem(editMenu, SWT.PUSH);
+		editItem.setText("Edit Data Files");
+		editItem.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				InputDialog delDialog = new InputDialog(shlFileEditor);
+				delDialog.setMaxValue(chartMgr.getTotalRecords());
+				EditData inputs = delDialog.open();
+				// Validate inputs
+				if (delDialog.isValidInput()) {
+					if (updateFile(inputs)) {
+						String action = "";
+						String files = "SpeedFile and CMD File are backed up.";
+						if (Mode.DELETE.equals(inputs.getCurrentMode())) {
+							action = "Deleted";
+						} else if (Mode.ADD.equals(inputs.getCurrentMode())) {
+							action = "Added";
+						} else {
+							action = "Value Changed";
+							if (inputs.isChangeVelocity()) {
+								files = "Speed File backed up.";
+							}
+						}
+						MessageDialog.openInformation(shlFileEditor, "Info",
+							action + ". [fromRec,toRec] [" +inputs.getFrom()+"," + inputs.getTo() + "]. " + files);
+						refreshUIData();
+						updateUILayout();
+					}
+				}
+			}
+		});
+//		MenuItem deleteItem = new MenuItem(editMenu, SWT.PUSH);
+//		deleteItem.setText("&Delete Rows");
+//		MenuItem addItem = new MenuItem(editMenu, SWT.PUSH);
+//		addItem.setText("&Add Rows");
+
 		MenuItem grayhillItem = new MenuItem(editMenu, SWT.CHECK);
 		grayhillItem.setText("Convert GrayHill Values");
 		grayhillItem.setSelection(true);
@@ -287,11 +330,6 @@ public class FileEditor {
 		MenuItem directionItem = new MenuItem(editMenu, SWT.CHECK);
 		directionItem.setText("&Direction");
 		directionItem.setSelection(direction);
-		MenuItem deleteItem = new MenuItem(editMenu, SWT.PUSH);
-		deleteItem.setText("&Delete Rows");
-		MenuItem addItem = new MenuItem(editMenu, SWT.PUSH);
-		addItem.setText("&Add Rows");
-
 		directionItem.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
@@ -301,28 +339,7 @@ public class FileEditor {
 				chartMgr.setDirection(direction);
 			}
 		});
-		deleteItem.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				InputDialog delDialog = new InputDialog(shlFileEditor);
-				delDialog.setRecordCount(chartMgr.getTotalRecords());
-				String[] inputs = delDialog.open();
-				// Validate inputs
-				if (delDialog.validInput()) {
-					if (updateFile(true, inputs)) {
-						refreshUIData();
-						updateUILayout();
-					}
-				}
-			}
-		});
-		addItem.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				// updateGraph(GraphElements.ROBOTPATH);
-				// refreshUILayout(true,true);
-			}
-		});
+
 
 		// Data Menu
 		MenuItem topDataMenu = new MenuItem(menuBar, SWT.CASCADE);
@@ -367,10 +384,26 @@ public class FileEditor {
 		return menuBar;
 	}
 
-	private boolean updateFile(boolean delete, String[] inputs) {
-		RioLogger.debugLog("From Field: " + inputs[0]);
-		RioLogger.debugLog("To Field: " + inputs[1]);
-		return chartMgr.updateSpeedFile(delete, inputs[0], inputs[1]);
+	private boolean updateFile(EditData fields) {
+		String from = fields.getFrom();
+		String to = fields.getTo();
+		String leftAmt = fields.getLeftValue();
+		String rightAmt = fields.getRightValue();
+		if (leftAmt == null  || leftAmt.length() == 0) {
+			leftAmt = "0";
+		}
+		if (rightAmt ==  null || rightAmt.length() == 0) {
+			rightAmt = "0";
+		}
+		RioLogger.debugLog("From Field: " + from);
+		RioLogger.debugLog("To Field: " +to);
+		RioLogger.debugLog("Left Amt: " + leftAmt);
+		RioLogger.debugLog("Right Amt: " +rightAmt);
+		boolean updated = chartMgr.updateSpeedFile(fields.getCurrentMode(), fields.isChangePower(), from, to,leftAmt, rightAmt);
+		if (fields.isChangePower()) {
+			updated |= cmdMgr.updateCmdFile(fields.getCurrentMode(), from, to, leftAmt, rightAmt);
+		}
+		return updated;
 	}
 
 	private void updateGraph(GraphElements gElem) {
@@ -403,13 +436,16 @@ public class FileEditor {
 		updateGraph(GraphElements.POWER);
 		statusBar.setText(" " + fileName + " | Records - " + chartMgr.getTotalRecords());
 		fileList.selectAll();
-		fileList.clearSelection();
+		//fileList.clearSelection();
+		fileList.cut();
 		List<String> records = chartMgr.listRecords();
 		for (String rec : records) {
 			fileList.append(rec + "\n");
 		}
 		Integer cmdCount = 0;
 		cmdMgr.setFileName(cmdFileName);
+//		cmdData.clearAll();
+		cmdData.removeAll();
 		List<CommandRecord> cmdFileData = cmdMgr.readCmdFile();
 		statusBarCmd.setText(" " + cmdFileName + " | Command - " + cmdMgr.getTotalCommands());
 		for (CommandRecord cmd : cmdFileData) {
