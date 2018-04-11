@@ -38,6 +38,10 @@ public class CommandRecord {
 	public Commands getID() {
 		return id;
 	}
+
+	public void setID(Commands id) {
+		this.id = id;
+	}
 	
 	public double getTotalTime() {
 		return totalTime;

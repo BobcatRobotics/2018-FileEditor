@@ -6,7 +6,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 
@@ -17,10 +19,12 @@ import org.bobcat.robotics.EditData.Mode;
 
 public class SpeedFile {
 	private static String path = File.separator + "home" + File.separator + "lvuser" + File.separator;
+	private static final String dateFmt = "yyyy-MM-dd_hh.mm.ss'.txt'";
 
 	private static List<SpeedRecord> speeds = new ArrayList<SpeedRecord>();
 	private static SpeedRecord eof = new SpeedRecord().endOfFile();
 	private String fileName;
+	private String shortName;
 
 	private int passCtr = 0;
 	private int maxCtr = 0;
@@ -32,12 +36,13 @@ public class SpeedFile {
 		speedEntryTime = System.currentTimeMillis();
 	}
 
-	public SpeedFile(String shortName) {
+	public SpeedFile(String name) {
 		this();
+		this.shortName = name;
 		// Check filename 
-		if (!shortName.contains(File.separator))
-			shortName = path + shortName;
-		this.fileName = shortName;	
+		if (!name.contains(File.separator))
+			name = path + name;
+		this.fileName = name;	
 	}
 
 	private void reset() {
@@ -66,11 +71,15 @@ public class SpeedFile {
 			printWriter.close();
 			fileWriter.close();
 		} catch (IOException e) {
-			String err = "SpeedFile.stopRecoring() error " + e.getMessage();
+			String err = "SpeedFile.stopRecording() error " + e.getMessage();
 			//DriverStation.reportError(err, false);
 			//RioLogger.log(err);
 			RioLogger.debugLog(err);
 		}
+	}
+	
+	public List<SpeedRecord> getSpeedFile() {
+		return speeds;
 	}
 
 	public void readRecordingFile() {
@@ -105,22 +114,37 @@ public class SpeedFile {
 		}
 	}
 	
+	public boolean saveFile() {
+		boolean updated = backUpFile();
+		try {
+			File file = new File(fileName);
+			FileWriter fileWriter = new FileWriter(file);
+			PrintWriter printWriter = new PrintWriter(fileWriter);
+			for (SpeedRecord speedObj : speeds) {
+				printWriter.println(speedObj.toString());
+			}
+			printWriter.println(eof.toString());
+			printWriter.flush();
+			printWriter.close();
+			fileWriter.close();
+		} catch (IOException e) {
+			String err = "SpeedFile.saveFile() error " + e.getMessage();
+			//DriverStation.reportError(err, false);
+			//RioLogger.log(err);
+			RioLogger.debugLog(err);
+			updated = false;
+		}
+		readRecordingFile();
+		return updated;
+	}
+	
 	// This is temporary 
 	// TODO:: Remove once GrayHills are in sync
 	// TODO:: Changes made 04-05-195
 	// TODO:: XXXXXXXXXXXXXXX
-	public boolean updategrayHillValue(String backupFileName) {
+	public boolean updategrayHillValue() {
 		//RioLogger.debugLog("fromRec - toRec " + fromRec + ", " + toRec);
-		boolean updated = true;
-		File source = new File(fileName);
-		File dest =  new File(path+backupFileName);
-		   try {
-			Files.copy(source.toPath(), dest.toPath());
-		} catch (IOException e) {
-			String err = "SpeedFile.updateRecordingFile() error " + e;
-			RioLogger.debugLog(err);
-			return false;
-		}
+		boolean updated = backUpFile();
 		   
 		try {
 			File file = new File(fileName);
@@ -165,19 +189,27 @@ public class SpeedFile {
 		return updated;
 	}
 	
-	public boolean updateRecordingFile(String backupFileName,Mode mode,boolean isPower,int fromRec,int toRec,double leftValue,double rightValue) {
-		RioLogger.debugLog("fromRec - toRec " + fromRec + ", " + toRec);
+	private boolean backUpFile() {
 		boolean updated = true;
+		String[] namesplit = shortName.split("\\.");
+		String datePath = new SimpleDateFormat(dateFmt).format(new Date());
+		String archiveSpeedFileName = namesplit[0] + ".speeds." + datePath;
+
 		File source = new File(fileName);
-		File dest =  new File(path+backupFileName);
+		File dest =  new File(path+archiveSpeedFileName);
 		   try {
 			Files.copy(source.toPath(), dest.toPath());
 		} catch (IOException e) {
-			String err = "SpeedFile.updateRecordingFile() error " + e;
+			String err = "SpeedFile.backUpFile() error " + e;
 			RioLogger.debugLog(err);
-			return false;
+			updated = false;
 		}
+		return updated;
+	}
 
+	public boolean updateRecordingFile(Mode mode,boolean isPower,int fromRec,int toRec,double leftValue,double rightValue) {
+		RioLogger.debugLog("fromRec - toRec " + fromRec + ", " + toRec);
+		boolean updated = backUpFile();
 		if (Mode.DELETE.equals(mode)) {
 			updated = deleteUpdate(fromRec,toRec);
 		} else if (Mode.ADD.equals(mode)) {
@@ -354,4 +386,29 @@ public class SpeedFile {
 		}
 		return speedObj.getVelocity();
 	}
+
+	public boolean updateValue(int recordNbr, int column, double value) {
+		boolean updated = false;
+		if (recordNbr < maxCtr) {
+			SpeedRecord rec = speeds.get(recordNbr);
+			if (column ==  3 || column == 4) {
+				if (column == 3) {
+					rec.setPower(value,rec.getPower()[1]);
+				} else {
+					rec.setPower(rec.getPower()[0], value);
+				}
+			}
+			if (column ==  7 || column == 8) {
+				if (column == 7) {
+					rec.setVelocity(value,rec.getVelocity()[1]);
+				} else {
+					rec.setVelocity(rec.getVelocity()[0], value);
+				}
+			}
+			updated = true;		
+		}
+		return updated;
+	}
+
+
 }

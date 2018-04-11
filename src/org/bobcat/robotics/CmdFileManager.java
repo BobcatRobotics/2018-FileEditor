@@ -1,18 +1,15 @@
 package org.bobcat.robotics;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bobcat.robotics.EditData.Mode;
 import org.usfirst.frc.team177.lib.CommandFile;
 import org.usfirst.frc.team177.lib.CommandRecord;
 import org.usfirst.frc.team177.lib.Commands;
+import org.usfirst.frc.team177.lib.RioLogger;
 
 public class CmdFileManager {
-	private static final String dateFmt = "'.'yyyy-MM-dd_hh.mm.ss'.txt'";
-
 	private String fileName = null;
 	private int nbrCommands = 0;
 	private CommandFile cmdFile;
@@ -60,12 +57,24 @@ public class CmdFileManager {
 	}
 	
 	public boolean updateCmdFile(Mode mode, String inputFrom, String inputTo,String leftValue,String rightValue) {
-		String[] namesplit = fileName.split("\\.");
-		String datePath = new SimpleDateFormat(dateFmt).format(new Date());
-		String archiveCmdFileName = namesplit[0]  + datePath;
-		return cmdFile.updateCMDFile(archiveCmdFileName, mode, new Integer(inputFrom),
+		return cmdFile.updateCMDFile( mode, new Integer(inputFrom),
 				new Integer(inputTo),new Double(leftValue),new Double(rightValue));
 	}
-
-
+	
+	public boolean updateCmdFileValue(int row, int col,String value) {
+		if (value == null || value.length() == 0) {
+			return false;
+		}
+RioLogger.debugLog("**** CmdFileManager.updateCmdFileValue updateCmdFileValue() " + row + " " + col + " " + value);		
+		boolean updated = false;
+		if (col == 2)
+			updated = cmdFile.updateLeftPower(row,new Double(value));
+		else
+			updated = cmdFile.updateRightPower(row,new Double(value));
+		return updated;
+	}
+	
+	public boolean saveCmdFile() {
+		return cmdFile.saveCmdFile();
+	}
 }

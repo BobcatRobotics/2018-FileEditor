@@ -1,18 +1,11 @@
 package org.bobcat.robotics;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.bobcat.robotics.EditData.Mode;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.event.ChartChangeEvent;
-import org.jfree.chart.event.ChartChangeListener;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
@@ -21,7 +14,6 @@ import org.usfirst.frc.team177.lib.SpeedFile;
 import org.usfirst.frc.team177.lib.SpeedRecord;
 
 public class JChartManager {
-	private static final String dateFmt = "yyyy-MM-dd_hh.mm.ss'.txt'";
 	private String fileName = null;
 	private int nbrRecords = 0;
 	private JFreeChart jChart = null;
@@ -51,6 +43,14 @@ public class JChartManager {
 		direction = dir;
 	}
 
+	public List<String> listRecords() {
+		return recList;
+	}
+
+	public List<SpeedRecord> listSpeeds() {
+		return speedFile.getSpeedFile();
+	}
+	
 	public XYSeriesCollection getChartData(GraphElements type) {
 		// line plot
 		// X Axis = Time, Y Axis = [Speed, or Distance, or Velocity]
@@ -287,15 +287,8 @@ public class JChartManager {
 		return newChart;
 	}
 
-	public List<String> listRecords() {
-		return recList;
-	}
-
 	public boolean updateSpeedFile(Mode mode, boolean isPower, String inputFrom, String inputTo,String leftValue,String rightValue) {
-		String[] namesplit = fileName.split("\\.");
-		String datePath = new SimpleDateFormat(dateFmt).format(new Date());
-		String archiveSpeedFileName = namesplit[0] + ".speeds." + datePath;
-		return speedFile.updateRecordingFile(archiveSpeedFileName, mode, isPower, new Integer(inputFrom),
+		return speedFile.updateRecordingFile(mode, isPower, new Integer(inputFrom),
 				new Integer(inputTo),new Double(leftValue),new Double(rightValue));
 	}
 
@@ -303,36 +296,16 @@ public class JChartManager {
 	// changes made for correct velocity and distance 04-05-195
 	// TODO:: XXXXXXXXXXX
 	public boolean convertSpeedFile() {
-		String[] namesplit = fileName.split("\\.");
-		String datePath = new SimpleDateFormat(dateFmt).format(new Date());
-		String archiveSpeedFileName = namesplit[0] + ".speeds." + datePath;
-		return speedFile.updategrayHillValue(archiveSpeedFileName);
+		return speedFile.updategrayHillValue();
 	}
 
-	// public void test()
-	// {
-	// final JFreeChart chart = createChart();
-	// final Display display = new Display();
-	// Shell shell = new Shell(display);
-	// shell.setSize(600, 300);
-	// shell.setLayout(new FillLayout());
-	// shell.setText("Test for jfreechart running with SWT");
-	// ChartComposite frame = new ChartComposite(shell, SWT.NONE, chart, true);
-	// frame.setDisplayToolTips(false);
-	// frame.setHorizontalAxisTrace(true);
-	// frame.setVerticalAxisTrace(true);
-	// shell.open();
-	// while (!shell.isDisposed()) {
-	// if (!display.readAndDispatch())
-	// display.sleep();
-	// }
-	// }
+	public void saveSpeedFile() {
+		speedFile.saveFile();
+	}
 
-	// class ChangeListener implements ChartChangeListener {
-	// @Override
-	// public void chartChanged(ChartChangeEvent arg0) {
-	// // TODO Auto-generated method stub
-	//
-	// }
-	// }
+	public boolean updateSpeedFileValue(int row, int col, String value) {
+		RioLogger.debugLog("**** JChartManager.updateCmdFileValue updateSpeedFileValue() " + row + " " + col + " " + value);		
+		
+		return speedFile.updateValue(row,col,new Double(value));
+	}
 }
