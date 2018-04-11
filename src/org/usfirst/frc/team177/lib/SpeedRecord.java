@@ -114,6 +114,7 @@ public class SpeedRecord {
 		String fmt = String.format(formatter,newID,newTotalTime,deltaTime,leftPower,rightPower,leftDistance,rightDistance,leftVelocity,rightVelocity);
 		return fmt;
 	}
+	
 	@Override
 	public String toString() {   // total time in second
 		String formatter =  "%04d %10.5f %8.5f %8.5f %8.5f %8.5f %8.5f %8.5f %8.5f";

@@ -304,6 +304,8 @@ public class JChartManager {
 	}
 
 	public boolean updateSpeedFileValue(int row, int col, String value) {
+		if (value == null || value.length() == 0)
+			value = "0.0";
 		RioLogger.debugLog("**** JChartManager.updateCmdFileValue updateSpeedFileValue() " + row + " " + col + " " + value);		
 		
 		return speedFile.updateValue(row,col,new Double(value));

@@ -93,18 +93,17 @@ public class CommandFile {
 			// File was read, now prime the passCounter for reading back each row
 			passCtr = 0;
 			// File was read, build the array that links Speed Records to CMD Records
-			fileLinks = new int[maxCtr][maxCtr];
-			int speedRec = 0;
+			fileLinks = new int[maxCtr][2];
+			int recCtr = 0;
 			int cmdRec = 0;
-			int fileLinkCtr = 0;
+			//int fileLinkCtr = 0;
 			for (CommandRecord cmd : commands) {
-				fileLinks[fileLinkCtr][0] = speedRec;
-				fileLinks[fileLinkCtr][1] = cmdRec;
+				fileLinks[recCtr][1] = recCtr;
+				fileLinks[recCtr][0] = cmdRec;
 				if(Commands.DRIVE_CHAIN.equals(cmd.getID())) {
-					speedRec++;
+					cmdRec++;
 				}
-				cmdRec++;
-				fileLinkCtr++;
+					recCtr++;
 			}
 		} catch (FileNotFoundException e) {
 			RioLogger.errorLog("CommandFile.readRecording() error " + e.getMessage());
@@ -127,20 +126,15 @@ public class CommandFile {
 	}
 
 	private boolean deleteCMDFile(int fromRec, int toRec) {
-		double timeDeleted = ((toRec - fromRec) + 1) * 0.02; // nbrRecords * 20 millis
-		double prevCmdTime = 0.0;
+//		double timeDeleted = ((toRec - fromRec) + 1) * 0.02; // nbrRecords * 20 millis
+		double prevTime = 0.0;
+		double newCmdTime = 0.0;
 		boolean updated = true;
-		int actualFromRecord = 0;
-		int actualToRecord = 0;
+		int actualFromRecord = fileLinks[fromRec][1];
+		int actualToRecord = fileLinks[toRec][1];
 		//int driveRecordsCnt = 0; 
 		int recCnt = 0;
 		RioLogger.debugLog("CommandFile.deleteCMDFile() fromRec, toRec " + fromRec + " " + toRec );
-		for (int[] fLink : fileLinks) {
-			if(actualFromRecord == 0 && fLink[0] == fromRec)
-				actualFromRecord = fLink[1];
-			if(actualToRecord == 0 && fLink[0] == toRec)
-				actualToRecord = fLink[1];
-		}
 		RioLogger.debugLog("CommandFile.deleteCMDFile() actualFromRecord, actualToRecord " + actualFromRecord + " " + actualToRecord );
 		recCnt = 0;
 		try {
@@ -150,20 +144,24 @@ public class CommandFile {
 			for (CommandRecord cmd : commands) {
 				if (Commands.EOF.equals(cmd.getID()))
 					break;
-	
-				if ((recCnt < actualFromRecord)  || (recCnt > actualToRecord)) {
-					if (recCnt > actualToRecord)
-						cmd.updateTime(cmd.getTotalTime() - timeDeleted);
+				if (recCnt < actualFromRecord) {
 					printWriter.println(cmd.toString());
+				} else if (recCnt > actualToRecord) {
+					cmd.updateTime(newCmdTime);
+					printWriter.println(cmd.toString());
+					if (Commands.DRIVE_CHAIN.equals(cmd.getID()))
+						newCmdTime += 0.02;
 				} else {
 					// Inside the Block
 					if (!Commands.DRIVE_CHAIN.equals(cmd.getID())) {
-						cmd.updateTime(prevCmdTime);
+						cmd.updateTime(newCmdTime);
 						printWriter.println(cmd.toString());
+						newCmdTime += 0.02;
 					}
 				}
-				if (recCnt == (actualFromRecord - 1)) {
-					prevCmdTime = cmd.getTotalTime();
+				if (recCnt == actualFromRecord) {
+					prevTime = cmd.getTotalTime();
+					newCmdTime = prevTime;
 				}
 				recCnt++;
 			}
@@ -184,16 +182,10 @@ public class CommandFile {
 
 	private boolean changeCMDFile(int fromRec, int toRec,double leftPower,double rightPower) {
 		boolean updated = true;
-		int actualFromRecord = 0;
-		int actualToRecord = 0;
+		int actualFromRecord = fileLinks[fromRec][1];
+		int actualToRecord = fileLinks[toRec][1];
 		int recCnt = 0;
 		RioLogger.debugLog("CommandFile.changeCMDFile() fromRec, toRec " + fromRec + " " + toRec );
-		for (int[] fLink : fileLinks) {
-			if(actualFromRecord == 0 && fLink[0] == fromRec)
-				actualFromRecord = fLink[1];
-			if(actualToRecord == 0 && fLink[0] == toRec)
-				actualToRecord = fLink[1];
-		}
 		RioLogger.debugLog("CommandFile.changeCMDFile() actualFromRecord, actualToRecord " + actualFromRecord + " " + actualToRecord );
 		recCnt = 0;
 		try {
@@ -226,17 +218,13 @@ public class CommandFile {
 	private boolean addCMDFile(int fromRec, int toRec) {
 		double timeAdded = ((toRec - fromRec) + 1) * 0.02; // nbrRecords * 20 millis
 		double prevCmdTime = 0.0;
+		double newCmdTime = 0.0;
+		//double newCmdTime = 0.0;
 		boolean updated = true;
-		int actualFromRecord = 0;
-		int actualToRecord = 0;
+		int actualFromRecord = fileLinks[fromRec][1];
+		int actualToRecord = fileLinks[toRec][1];
 		int recCnt = 0;
 		RioLogger.debugLog("CommandFile.addCMDFile() fromRec, toRec " + fromRec + " " + toRec );
-		for (int[] fLink : fileLinks) {
-			if(actualFromRecord == 0 && fLink[0] == fromRec)
-				actualFromRecord = fLink[1];
-			if(actualToRecord == 0 && fLink[0] == toRec)
-				actualToRecord = fLink[1];
-		}
 		RioLogger.debugLog("CommandFile.addCMDFile() actualFromRecord, actualToRecord " + actualFromRecord + " " + actualToRecord );
 		recCnt = 0;
 		CommandRecord newRec = new CommandRecord();
@@ -251,19 +239,26 @@ public class CommandFile {
 			for (CommandRecord cmd : commands) {
 				if (Commands.EOF.equals(cmd.getID()))
 					break;
-				if ((recCnt > actualFromRecord)) {
-						cmd.updateTime(cmd.getTotalTime() + timeAdded);
+				if (recCnt == actualFromRecord) {
+					prevCmdTime = cmd.getTotalTime();
+					newCmdTime = prevCmdTime;
+					newCmdTime += 0.02;
+				}			
+				if (recCnt > actualFromRecord) {
+					cmd.updateTime(newCmdTime);
 					printWriter.println(cmd.toString());
+					newCmdTime += 0.02;
+				} else if (recCnt < actualFromRecord) {
+					printWriter.println(cmd.toString());
+					newCmdTime += 0.02;
 				} else if (recCnt == actualFromRecord) {
 					// Inside the Block
-					for (int newRecCtr = 0; newRecCtr < (toRec - fromRec);newRecCtr++) {
-						newRec.updateTime(prevCmdTime + (newRecCtr * 0.02));
+					printWriter.println(cmd.toString());
+					for (int newRecCtr = 0; newRecCtr < (toRec - fromRec);newRecCtr++, newCmdTime += 0.02) {
+						newRec.updateTime(newCmdTime);
 						printWriter.println(newRec.toString());
 					}
 				}
-				if (recCnt == actualFromRecord) {
-					prevCmdTime = cmd.getTotalTime();
-				}			
 				recCnt++;
 			}
 			printWriter.println(eof.toString());
@@ -303,7 +298,6 @@ public class CommandFile {
 			RioLogger.debugLog(err);
 			updated = false;
 		}
-		readRecordingFile();
 		return updated;	
 	}
 	

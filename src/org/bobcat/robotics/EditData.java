@@ -112,6 +112,11 @@ public class EditData {
 				errors = "Add Error - From,To values are not numeric or not in range.";
 				hasErrors = true;
 			}
+			int fromStr = new Integer(from);
+			if (fromStr == 0) {
+				errors = "From Value must be greater than zero.";
+				
+			}
 		}
 		// Check if Change Values
 		if (Mode.CHANGE.equals(currentMode)) {

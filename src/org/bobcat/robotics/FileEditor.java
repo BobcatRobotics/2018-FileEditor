@@ -361,6 +361,7 @@ public class FileEditor {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				InputDialog delDialog = new InputDialog(shlFileEditor);
+				delDialog.setFileName(fileName);
 				delDialog.setMaxValue(chartMgr.getTotalRecords());
 				EditData inputs = delDialog.open();
 				// Validate inputs
@@ -472,12 +473,11 @@ public class FileEditor {
 		if (rightAmt ==  null || rightAmt.length() == 0) {
 			rightAmt = "0";
 		}
-		RioLogger.debugLog("From Field: " + from);
-		RioLogger.debugLog("To Field: " +to);
-		RioLogger.debugLog("Left Amt: " + leftAmt);
-		RioLogger.debugLog("Right Amt: " +rightAmt);
+		RioLogger.debugLog("From Field - To Field : " + from + " - " + to );
+		RioLogger.debugLog("Left Amt, Right Amt: " + leftAmt + ", " + rightAmt);
+		RioLogger.debugLog("isChangePower: " + fields.isChangePower());
 		boolean updated = chartMgr.updateSpeedFile(fields.getCurrentMode(), fields.isChangePower(), from, to,leftAmt, rightAmt);
-		if (fields.isChangePower()) {
+		if (!fields.isChangeVelocity() ) {
 			updated |= cmdMgr.updateCmdFile(fields.getCurrentMode(), from, to, leftAmt, rightAmt);
 		}
 		return updated;

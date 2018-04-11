@@ -185,7 +185,6 @@ public class SpeedFile {
 			RioLogger.debugLog(err);
 			updated = false;
 		}
-		
 		return updated;
 	}
 	
@@ -255,19 +254,20 @@ public class SpeedFile {
 
 	private boolean deleteUpdate(int fromRec, int toRec) {
 		boolean updated = true;
-		double totalTimeFrom = 0.0;
-		double totalTimeTo = 0.0;
-		boolean deleteZeroRec = (fromRec == 0);
+//		double totalTimeFrom = 0.0;
+//		double totalTimeTo = 0.0;
+		double newTime = 0.0;
+		//boolean deleteZeroRec = (fromRec == 0);
 		// Special condition, fromRec = 0
-		if (deleteZeroRec) {
-			SpeedRecord firstRecord = speeds.get(0);
-			totalTimeFrom = firstRecord.getElapsedTime(false);
-		} else {
-			SpeedRecord fromRecord = speeds.get(fromRec - 1);
-			totalTimeFrom = fromRecord.getElapsedTime(false);
-		}
-		totalTimeTo = speeds.get(toRec).getElapsedTime(false);
-		double subtractTime = totalTimeTo - totalTimeFrom;
+//		if (deleteZeroRec) {
+//			SpeedRecord firstRecord = speeds.get(0);
+//			totalTimeFrom = firstRecord.getElapsedTime(false);
+//		} else {
+//			SpeedRecord fromRecord = speeds.get(fromRec - 1);
+//			totalTimeFrom = fromRecord.getElapsedTime(false);
+//		}
+//		totalTimeTo = speeds.get(toRec).getElapsedTime(false);
+//		double subtractTime = totalTimeTo - totalTimeFrom;
 		int recCtr = 0;
 		int newRecCtr = 0;
 		boolean hitAdjust = false;
@@ -277,9 +277,9 @@ public class SpeedFile {
 			PrintWriter printWriter = new PrintWriter(fileWriter);
 			for (SpeedRecord speedObj : speeds) {
 				// Special condition, fromRec = 0
-				if (deleteZeroRec) {
-					printWriter.println(speedObj.toString());
-				} 
+				// if (deleteZeroRec) {
+				// printWriter.println(speedObj.toString());
+				// }
 				if (recCtr < fromRec) {
 					printWriter.println(speedObj.toString());
 					recCtr++;
@@ -287,20 +287,21 @@ public class SpeedFile {
 					if (!hitAdjust) {
 						hitAdjust = true;
 						newRecCtr = recCtr;
+						// if (deleteZeroRec) {
+						// newRecCtr = recCtr;
+						// deleteZeroRec = false;
+						// }
 					}
 					recCtr++;
-					if (deleteZeroRec) {
-						newRecCtr = recCtr;
-						deleteZeroRec = false;
-					}
-				} else {
-					if (recCtr > toRec) {
-						double newTotalTime = speedObj.getElapsedTime(false) - subtractTime;
-						printWriter.println(speedObj.toStringUpdate(newRecCtr, newTotalTime));
-						recCtr++;
-						newRecCtr++;
-					}
+				} else if (recCtr > toRec) {
+					newTime += 0.02;
+					// double newTotalTime = speedObj.getElapsedTime(false) - subtractTime;
+					printWriter.println(speedObj.toStringUpdate(newRecCtr, newTime));
+					recCtr++;
+					newRecCtr++;
 				}
+				if (recCtr == fromRec)
+					newTime = speedObj.getElapsedTime(false);
 			}
 			printWriter.println(eof.toString());
 			printWriter.flush();
@@ -318,8 +319,67 @@ public class SpeedFile {
 	}
 	
 	private boolean addUpdate(int fromRec, int toRec) {
+		RioLogger.debugLog("SpeedFile.addUpdate() fromRec, toRec " + fromRec + " " + toRec );
+//		double timeAdded = ((toRec - fromRec) + 1) * 0.02; // nbrRecords * 20 millis
+		double totTime = 0.0;
 		boolean updated = true;
-		return updated;
+		int recCnt = 0;
+		int newRecCnt = 0;
+		SpeedRecord prevRec;
+		SpeedRecord newRec  = new SpeedRecord();
+		try {
+			File file = new File(fileName);
+			FileWriter fileWriter = new FileWriter(file);
+			PrintWriter printWriter = new PrintWriter(fileWriter);
+			for (SpeedRecord speedObj : speeds) {
+				if (SpeedRecord.EOF == speedObj.getID())
+					break;
+				if (recCnt == fromRec) {
+					prevRec = speedObj;
+					newRec.setPower(prevRec.getPower()[0], prevRec.getPower()[1]);
+					newRec.setDistance(prevRec.getDistance()[0],prevRec.getDistance()[1]);
+					newRec.setVelocity(prevRec.getVelocity()[0], prevRec.getVelocity()[1]);
+					totTime = prevRec.getElapsedTime(false);
+					totTime += 0.02;
+				}		
+				if (recCnt > fromRec) {
+					speedObj.setReadKeys(formatKey(newRecCnt,totTime,0.02));
+					printWriter.println(speedObj.toString());
+					totTime += 0.02;
+				} else if (recCnt < fromRec) {
+					printWriter.println(speedObj.toString());
+					totTime += 0.02;
+				} else if (recCnt == fromRec) {
+					// Inside the Block
+					printWriter.println(speedObj.toString());
+					for (int newCtr = 0; newCtr < (toRec - fromRec);newCtr++) {
+						totTime += 0.02;
+						newRecCnt++;
+						newRec.setReadKeys(formatKey(newRecCnt,totTime,0.02));
+						printWriter.println(newRec.toString());
+					}
+				}
+				newRecCnt++;
+				recCnt++;
+			}
+			printWriter.println(eof.toString());
+			printWriter.flush();
+			printWriter.close();
+			fileWriter.close();
+		} catch (IOException e) {
+			String err = "SpeedFile.addUpdate() error " + e.getMessage();
+			//DriverStation.reportError(err, false);
+			//RioLogger.log(err);
+			RioLogger.debugLog(err);
+			updated = false;
+		}
+		
+		return updated;			
+	}
+	
+	private String formatKey(int recId, double totTime, double deltaTime) {
+		return String.format("%04d %10.5f %8.5f ", recId,totTime, deltaTime);
+		
 	}
 
 	public SpeedRecord getRawData(int index) {
@@ -389,6 +449,8 @@ public class SpeedFile {
 
 	public boolean updateValue(int recordNbr, int column, double value) {
 		boolean updated = false;
+		RioLogger.debugLog("**** SpeedFile.updateValue maxCtr " + maxCtr);		
+		
 		if (recordNbr < maxCtr) {
 			SpeedRecord rec = speeds.get(recordNbr);
 			if (column ==  3 || column == 4) {

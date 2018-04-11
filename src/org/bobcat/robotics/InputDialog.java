@@ -17,6 +17,7 @@ import org.eclipse.swt.widgets.Text;
 
 public class InputDialog extends Dialog {
 	private Shell dialogShell;
+	private String fileName = "";
 	// For Validation
 	private EditData dlgFields = new EditData();
 		
@@ -37,6 +38,10 @@ public class InputDialog extends Dialog {
 		dlgFields.setMaxValue(totRecs);
 	}
 
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+
 	public boolean isValidInput() {
 		return dlgFields.isHasErrors();
 	}
@@ -44,7 +49,7 @@ public class InputDialog extends Dialog {
 	public EditData open() {
 		dialogShell = new Shell(getParent(), getStyle());
 		dialogShell.setSize(308, 160);
-		dialogShell.setText("Edit");
+		dialogShell.setText("Edit - " + fileName);
 		createContents(dialogShell);
 		dialogShell.pack();
 		dialogShell.open();
